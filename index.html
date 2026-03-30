@@ -474,6 +474,53 @@ body{
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ========== SETTINGS PAGE ========== */
+.settings-page{
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 0 40px;min-height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - 80px);
+}
+.settings-header{
+  text-align:center;margin-bottom:32px;
+}
+.settings-book-icon{
+  width:48px;height:48px;color:var(--accent);margin:0 auto 12px;
+}
+.settings-book-icon svg{width:100%;height:100%}
+.settings-title{
+  font-family:var(--font-display);font-size:28px;color:var(--text);
+  margin-bottom:4px;letter-spacing:-0.01em;
+}
+.settings-version{
+  font-size:14px;font-weight:500;color:var(--text-muted);
+  letter-spacing:0.03em;
+}
+.settings-section{
+  width:100%;margin-bottom:24px;
+}
+.settings-section-title{
+  font-family:var(--font-display);font-size:19px;color:var(--text);
+  margin-bottom:10px;
+}
+.settings-about{
+  background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--radius-lg);padding:16px;
+  font-size:14px;color:var(--text-muted);line-height:1.6;
+}
+.settings-love-note{
+  margin-top:auto;padding-top:40px;
+  text-align:center;width:100%;
+  border-top:1px solid var(--border-light);
+  padding-bottom:8px;
+}
+.settings-love-note p{
+  font-family:var(--font-display);font-size:17px;
+  font-style:italic;color:var(--text-muted);
+  line-height:1.6;margin:0;
+}
+.settings-love-note .settings-love-sign{
+  margin-top:8px;color:var(--accent);font-size:15px;
+}
+
 /* ========== DESKTOP ADJUSTMENTS ========== */
 @media(min-width:640px){
   body{max-width:720px;margin:0 auto}
@@ -522,6 +569,10 @@ body{
     <span>Grocery</span>
     <span class="tab-badge" id="groceryBadge" style="display:none">0</span>
   </button>
+  <button class="tab-btn" data-tab="settings">
+    <i data-lucide="settings"></i>
+    <span>Settings</span>
+  </button>
 </nav>
 
 <!-- RECIPES TAB -->
@@ -557,20 +608,6 @@ body{
 
 <!-- SCAN TAB -->
 <div class="tab-panel" id="panel-scan">
-  <div class="api-key-section">
-    <div class="api-key-header">
-      <span class="api-key-title">Gemini API Key</span>
-      <span class="api-key-status" id="apiKeyStatus"></span>
-    </div>
-    <div class="api-key-input-wrap">
-      <input type="password" class="form-input" id="apiKeyInput" placeholder="Paste your API key">
-      <button class="btn btn-sm btn-primary" id="saveApiKeyBtn">Save</button>
-    </div>
-    <div class="api-key-help">
-      Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a>. Your key is stored locally on this device.
-    </div>
-  </div>
-
   <!-- Mode Toggle -->
   <div class="scan-mode-toggle">
     <button class="scan-mode-btn active" data-mode="scan">
@@ -627,6 +664,56 @@ body{
     </div>
     <div class="empty-state-title">Your grocery list is empty</div>
     <div class="empty-state-text">Open a recipe and add ingredients to start building your list.</div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div class="tab-panel" id="panel-settings">
+  <div class="settings-page">
+    <div class="settings-header">
+      <div class="settings-book-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 6 C6 4, 8 3, 10 3 L14 3 C14 3, 15 3, 15 4 L15 27 C15 27, 15 28, 14 28 L10 28 C8 28, 6 27, 6 25 Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <path d="M26 6 C26 4, 24 3, 22 3 L18 3 C18 3, 17 3, 17 4 L17 27 C17 27, 17 28, 18 28 L22 28 C24 28, 26 27, 26 25 Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <path d="M9 9 L12 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M9 13 L12 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M20 9 L23 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M20 13 L23 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="16" cy="3" r="1.2" fill="currentColor"/>
+        </svg>
+      </div>
+      <h1 class="settings-title">Dani's Book</h1>
+      <span class="settings-version">Version 1.0</span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Gemini API Key</div>
+      <div class="api-key-section">
+        <div class="api-key-header">
+          <span class="api-key-title">Your API Key</span>
+          <span class="api-key-status" id="apiKeyStatus"></span>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="password" class="form-input" id="apiKeyInput" placeholder="Paste your API key">
+          <button class="btn btn-sm btn-primary" id="saveApiKeyBtn">Save</button>
+        </div>
+        <div class="api-key-help">
+          Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a>. Your key is stored locally on this device.
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">About</div>
+      <div class="settings-about">
+        <p>A cozy recipe book for saving, scanning, and sharing the meals you love.</p>
+      </div>
+    </div>
+
+    <div class="settings-love-note">
+      <p>For my beautiful girlfriend, whatever we dream we can make together.</p>
+      <p class="settings-love-sign">Love your boy - Andrew</p>
+    </div>
   </div>
 </div>
 
@@ -1038,7 +1125,7 @@ function renderPreviews(){
 
 $('#scanBtn').addEventListener('click',async()=>{
   const key=loadData('rb_api_key','');
-  if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key above first.';return}
+  if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key in the Settings tab first.';return}
   if(selectedFiles.length===0)return;
 
   $('#scanError').style.display='none';
@@ -1102,7 +1189,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
         if(resp.status===403){
           const err=await resp.json().catch(()=>({}));
           const msg=err.error?.message||'';
-          if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it above.');
+          if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it in Settings.');
           throw new Error(msg||`Permission denied (${resp.status})`);
         }
         if(!resp.ok){
