@@ -317,22 +317,8 @@ body{
 .detail-actions{display:flex;gap:10px;margin-top:24px}
 
 /* ========== SCAN TAB ========== */
-.scan-mode-toggle{
-  display:flex;gap:8px;margin-bottom:20px;
-  background:var(--surface-alt);border-radius:var(--radius-lg);padding:4px;
-}
-.scan-mode-btn{
-  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-  height:40px;border-radius:var(--radius-md);font-size:13px;font-weight:500;
-  color:var(--text-muted);transition:all var(--transition);
-}
-.scan-mode-btn:active{transform:scale(0.97)}
-.scan-mode-btn.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
-.scan-mode-btn svg{width:16px;height:16px}
-
 .scan-section{margin-bottom:24px}
-.scan-section-title{font-family:var(--font-display);font-size:19px;margin-bottom:4px}
-.scan-section-desc{font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.5}
+.scan-section-title{font-family:var(--font-display);font-size:19px;margin-bottom:10px}
 
 .api-key-section{
   background:var(--surface);border:1px solid var(--border-light);
@@ -365,40 +351,15 @@ body{
 }
 
 .scan-loading{
-  position:relative;text-align:center;padding:40px 20px;min-height:calc(100dvh - 180px);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px 20px;
 }
-.scan-loading-text{font-size:15px;color:var(--text-muted);font-style:italic;position:relative;z-index:2}
-
-/* Vine animation container */
-.vine-canvas{position:absolute;inset:-20px;overflow:hidden;pointer-events:none;z-index:1}
-.vine-canvas svg{width:100%;height:100%}
-
-/* Stems */
-.v-stem{fill:none;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:vGrow var(--dur,2s) ease forwards;animation-delay:var(--d,0s)}
-@keyframes vGrow{to{stroke-dashoffset:0}}
-
-/* Leaves */
-.v-leaf{opacity:0;transform-origin:center;animation:vLeaf 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vLeaf{from{opacity:0;transform:scale(0) rotate(-40deg)}to{opacity:0.7;transform:scale(1) rotate(0deg)}}
-
-/* Flowers / blooms */
-.v-bloom{opacity:0;transform-origin:center;animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:0.9;transform:scale(1) rotate(0deg)}}
-
-/* Buds */
-.v-bud{opacity:0;animation:vBud 0.5s ease forwards;animation-delay:var(--d,0s)}
-@keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:0.7;transform:scale(1)}}
-
-/* Gentle sway for sustained blooms */
-@keyframes vSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(3deg)}}
-.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards,vSway 3s ease-in-out infinite;animation-delay:var(--d,0s),calc(var(--d,0s) + 0.8s)}
-
-/* Withdraw */
-.vine-canvas.withdrawing .v-stem{animation:vShrink 0.6s ease forwards !important}
-@keyframes vShrink{to{stroke-dashoffset:var(--len);opacity:0}}
-.vine-canvas.withdrawing .v-leaf,.vine-canvas.withdrawing .v-bloom,.vine-canvas.withdrawing .v-bud{animation:vFade 0.5s ease forwards !important}
-@keyframes vFade{to{opacity:0;transform:scale(0)}}
+.scan-loading-spinner{
+  width:40px;height:40px;border:3px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-loading-text{font-size:15px;color:var(--text-muted);font-style:italic}
 
 .scan-error{
   background:rgba(196,90,90,0.08);border:1px solid rgba(196,90,90,0.2);
@@ -557,7 +518,7 @@ body{
 
 <!-- SCAN TAB -->
 <div class="tab-panel" id="panel-scan">
-  <div class="api-key-section" style="display:none">
+  <div class="api-key-section">
     <div class="api-key-header">
       <span class="api-key-title">Gemini API Key</span>
       <span class="api-key-status" id="apiKeyStatus"></span>
@@ -571,19 +532,8 @@ body{
     </div>
   </div>
 
-  <!-- Mode Toggle -->
-  <div class="scan-mode-toggle">
-    <button class="scan-mode-btn active" data-mode="scan">
-      <i data-lucide="scan-line"></i> Scan a Recipe
-    </button>
-    <button class="scan-mode-btn" data-mode="identify">
-      <i data-lucide="utensils"></i> Identify a Dish
-    </button>
-  </div>
-
   <div class="scan-section" id="scanUploadSection">
-    <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
-    <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
+    <div class="scan-section-title">Upload Recipe Photos</div>
     <div class="upload-zone" id="uploadZone">
       <div class="upload-zone-icon"><i data-lucide="image-plus"></i></div>
       <div class="upload-zone-text">Tap to select photos</div>
@@ -593,15 +543,15 @@ body{
     <div class="preview-grid" id="previewGrid"></div>
     <div style="margin-top:16px">
       <button class="btn btn-primary btn-block btn-icon" id="scanBtn" disabled>
-        <i data-lucide="scan-line"></i> <span id="scanBtnText">Scan Recipe</span>
+        <i data-lucide="scan-line"></i> Scan Recipe
       </button>
     </div>
     <div class="scan-error" id="scanError" style="display:none"></div>
   </div>
 
   <div class="scan-loading" id="scanLoading" style="display:none">
-    <div class="vine-canvas" id="vineCanvas"></div>
-    <div class="scan-loading-text" id="scanLoadingText">Reading your recipe...</div>
+    <div class="scan-loading-spinner"></div>
+    <div class="scan-loading-text">Reading your recipe...</div>
   </div>
 </div>
 
@@ -984,29 +934,10 @@ $('#recipeForm').addEventListener('submit',e=>{
 });
 
 // ========== SCAN ==========
-let scanMode='scan';
-$$('.scan-mode-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    scanMode=btn.dataset.mode;
-    $$('.scan-mode-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    if(scanMode==='identify'){
-      $('#scanSectionTitle').textContent='Snap a Dish';
-      $('#scanSectionDesc').textContent='Take a photo of any meal and we will try to figure out what it is and how to make it.';
-      $('#scanBtnText').textContent='Identify Dish';
-    }else{
-      $('#scanSectionTitle').textContent='Upload Recipe Photos';
-      $('#scanSectionDesc').textContent='Take a photo of a recipe from a cookbook, website, or handwritten card.';
-      $('#scanBtnText').textContent='Scan Recipe';
-    }
-  });
-});
-
 const apiKeyInput=$('#apiKeyInput');
 const apiKeyStatus=$('#apiKeyStatus');
-const HARDCODED_KEY='AIzaSyBT8pa8G1ynmSXzK8gQWYUIN8_-BTRcgws';
-const savedKey=HARDCODED_KEY||loadData('rb_api_key','');
-if(savedKey){saveData('rb_api_key',savedKey);apiKeyInput.value=savedKey;apiKeyStatus.textContent='Saved';apiKeyStatus.className='api-key-status saved'}
+const savedKey=loadData('rb_api_key','');
+if(savedKey){apiKeyInput.value=savedKey;apiKeyStatus.textContent='Saved';apiKeyStatus.className='api-key-status saved'}
 else{apiKeyStatus.textContent='Not set';apiKeyStatus.className='api-key-status missing'}
 
 $('#saveApiKeyBtn').addEventListener('click',()=>{
@@ -1037,15 +968,13 @@ function renderPreviews(){
 }
 
 $('#scanBtn').addEventListener('click',async()=>{
-  const key=HARDCODED_KEY||loadData('rb_api_key','');
+  const key=loadData('rb_api_key','');
   if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key above first.';return}
   if(selectedFiles.length===0)return;
 
   $('#scanError').style.display='none';
   $('#scanUploadSection').style.display='none';
-  $('#scanLoading').style.display='flex';
-  $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
-  createVines();
+  $('#scanLoading').style.display='block';
 
   try{
     const parts=[];
@@ -1053,8 +982,7 @@ $('#scanBtn').addEventListener('click',async()=>{
       const base64=await fileToBase64(file);
       parts.push({inline_data:{mime_type:file.type,data:base64}});
     }
-
-    const scanPrompt=`Look at this recipe image and extract the recipe information. Return a JSON object with exactly these fields:
+    parts.push({text:`Look at this recipe image and extract the recipe information. Return a JSON object with exactly these fields:
 {
   "name": "recipe name",
   "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
@@ -1064,46 +992,19 @@ $('#scanBtn').addEventListener('click',async()=>{
   "instructions": ["step 1", "step 2"],
   "notes": "any tips or notes, or empty string"
 }
-Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
+Return ONLY valid JSON, no markdown, no code fences, no extra text.`});
 
-    const identifyPrompt=`Look at this photo of a dish or meal. Identify what the food is, then create a complete recipe to recreate it at home. Be specific with ingredients and measurements. Return a JSON object with exactly these fields:
-{
-  "name": "name of the dish",
-  "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
-  "time": "estimated cook time like 30 min",
-  "servings": "number of servings like 4",
-  "ingredients": ["ingredient 1 with measurement", "ingredient 2 with measurement"],
-  "instructions": ["step 1", "step 2"],
-  "notes": "what you identified in the photo and any tips for recreating it"
-}
-Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
-
-    parts.push({text:scanMode==='identify'?identifyPrompt:scanPrompt});
-
-    // Fetch with auto-retry on rate limit (429)
-    let resp,data;
-    const maxRetries=3;
-    for(let attempt=0;attempt<maxRetries;attempt++){
-      resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts}]})
-      });
-      if(resp.status===429&&attempt<maxRetries-1){
-        const wait=5+attempt*5;
-        $('#scanLoadingText').textContent=`Rate limited, retrying in ${wait}s...`;
-        await new Promise(r=>setTimeout(r,wait*1000));
-        $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
-        continue;
-      }
-      if(!resp.ok){
-        const err=await resp.json().catch(()=>({}));
-        throw new Error(err.error?.message||`API error (${resp.status})`);
-      }
-      data=await resp.json();
-      break;
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts}]})
+    });
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message||`API error (${resp.status})`);
     }
-    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const data=await resp.json();
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
     const parsed=JSON.parse(cleaned);
 
@@ -1119,24 +1020,20 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
     $('#fNotes').value=parsed.notes||'';
     $('#formSubmitBtn').textContent='Save Recipe';
 
-    withdrawVines(()=>{
-      $('#scanLoading').style.display='none';
-      $('#scanUploadSection').style.display='block';
-      $('#formModal').classList.add('open');
-      toast(scanMode==='identify'?'Dish identified successfully':'Recipe scanned successfully');
-    });
+    $('#scanLoading').style.display='none';
+    $('#scanUploadSection').style.display='block';
+    $('#formModal').classList.add('open');
+    toast('Recipe scanned successfully');
     selectedFiles=[];
     $('#previewGrid').innerHTML='';
     $('#photoInput').value='';
     $('#scanBtn').disabled=true;
 
   }catch(err){
-    withdrawVines(()=>{
-      $('#scanLoading').style.display='none';
-      $('#scanUploadSection').style.display='block';
-      $('#scanError').style.display='block';
-      $('#scanError').textContent='Scan failed: '+err.message;
-    });
+    $('#scanLoading').style.display='none';
+    $('#scanUploadSection').style.display='block';
+    $('#scanError').style.display='block';
+    $('#scanError').textContent='Scan failed: '+err.message;
   }
 });
 
@@ -1248,232 +1145,6 @@ function showConfirm(title,text,onOk){
 }
 $('#confirmCancel').addEventListener('click',()=>$('#confirmOverlay').classList.remove('open'));
 $('#confirmOk').addEventListener('click',()=>{$('#confirmOverlay').classList.remove('open');if(confirmCallback)confirmCallback()});
-
-// ========== VINE ANIMATION ==========
-let vineStartTime=0;
-const VINE_MIN_MS=4000;
-
-function createVines(){
-  vineStartTime=Date.now();
-  const canvas=$('#vineCanvas');
-  const w=canvas.offsetWidth||375;
-  const h=canvas.offsetHeight||320;
-  let svg=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-
-  // Botanical palette inspired by the watercolor reference
-  const greens=['#3D6B3D','#4A7C3F','#5A8F4E','#2D5A2D','#6B8F5E','#3A5F28'];
-  const flowerPalettes=[
-    {petals:'#D4829A',center:'#C46A84',type:'wild-rose'},    // soft pink
-    {petals:'#B07EC5',center:'#8B5FA0',type:'lavender'},      // lavender purple
-    {petals:'#7BA3D4',center:'#5C87BD',type:'forget-me-not'}, // cornflower blue
-    {petals:'#E8C96E',center:'#C4A43D',type:'tulip'},         // golden/orange tulip
-    {petals:'#F0E6D8',center:'#D4C8A8',type:'white-bloom'},   // white/cream
-    {petals:'#D46B8A',center:'#B84D6D',type:'peony'},         // deep pink
-    {petals:'#9B7EC4',center:'#7B5EA4',type:'wisteria'},      // purple wisteria
-    {petals:'#C4705A',center:'#A85A44',type:'terracotta'},    // terracotta
-  ];
-
-  function rng(min,max){return min+Math.random()*(max-min)}
-  function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
-
-  function makeVinePath(sx,sy,dir,segs){
-    let pts=[{x:sx,y:sy}];
-    for(let i=0;i<segs;i++){
-      const p=pts[pts.length-1];
-      const spread=30+Math.random()*30;
-      let nx,ny;
-      if(dir==='right'){nx=p.x+spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='left'){nx=p.x-spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='up'){nx=p.x+(Math.random()-0.5)*50;ny=p.y-spread}
-      else{nx=p.x+(Math.random()-0.5)*50;ny=p.y+spread}
-      pts.push({x:Math.max(-15,Math.min(w+15,nx)),y:Math.max(-15,Math.min(h+15,ny))});
-    }
-    let d=`M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
-    for(let i=1;i<pts.length;i++){
-      const prev=pts[i-1],cur=pts[i];
-      const cx1=(prev.x+(cur.x-prev.x)*0.4+(Math.random()-0.5)*25).toFixed(1);
-      const cy1=(prev.y+(Math.random()-0.5)*35).toFixed(1);
-      const cx2=(cur.x-(cur.x-prev.x)*0.3+(Math.random()-0.5)*25).toFixed(1);
-      const cy2=(cur.y+(Math.random()-0.5)*35).toFixed(1);
-      d+=` C${cx1},${cy1} ${cx2},${cy2} ${cur.x.toFixed(1)},${cur.y.toFixed(1)}`;
-    }
-    return {d,pts,len:segs*55};
-  }
-
-  // Build leaf SVG path (pointed teardrop shape)
-  function leafPath(cx,cy,size,rot){
-    const s=size;
-    return `<path class="v-leaf" d="M${cx},${cy-s*0.5} Q${cx+s*0.4},${cy-s*0.1} ${cx},${cy+s*0.5} Q${cx-s*0.4},${cy-s*0.1} ${cx},${cy-s*0.5}Z" fill="${pick(greens)}" transform="rotate(${rot},${cx},${cy})"`;
-  }
-
-  // Build different flower types as SVG
-  function makeFlower(cx,cy,delay,flr){
-    let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s">`;
-    const sz=rng(6,14);
-
-    if(flr.type==='wild-rose'){
-      // 5-petal open rose like in the reference
-      const petals=5;
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2-Math.PI/2;
-        const px=cx+Math.cos(a)*sz*0.6;
-        const py=cy+Math.sin(a)*sz*0.6;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.55).toFixed(1)}" ry="${(sz*0.4).toFixed(1)}" fill="${flr.petals}" opacity="0.8" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
-      }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.25).toFixed(1)}" fill="${flr.center}"/>`;
-    }
-    else if(flr.type==='forget-me-not'){
-      // Tiny 5-petal clusters (blue)
-      const count=3+Math.floor(Math.random()*4);
-      for(let i=0;i<count;i++){
-        const ox=cx+rng(-12,12), oy=cy+rng(-12,12);
-        const ts=rng(2.5,4.5);
-        for(let p=0;p<5;p++){
-          const a=(p/5)*Math.PI*2;
-          g+=`<circle cx="${(ox+Math.cos(a)*ts).toFixed(1)}" cy="${(oy+Math.sin(a)*ts).toFixed(1)}" r="${(ts*0.5).toFixed(1)}" fill="${flr.petals}" opacity="0.75"/>`;
-        }
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="1" fill="#FFE680"/>`;
-      }
-    }
-    else if(flr.type==='tulip'){
-      // Closed tulip bud shape
-      g+=`<ellipse cx="${cx}" cy="${cy-sz*0.2}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.6).toFixed(1)}" fill="${flr.petals}" opacity="0.85"/>`;
-      g+=`<ellipse cx="${cx-sz*0.15}" cy="${cy-sz*0.15}" rx="${(sz*0.3).toFixed(1)}" ry="${(sz*0.55).toFixed(1)}" fill="${flr.center}" opacity="0.6" transform="rotate(-8,${cx},${cy})"/>`;
-    }
-    else if(flr.type==='wisteria'){
-      // Drooping cluster of small circles
-      const count=5+Math.floor(Math.random()*6);
-      for(let i=0;i<count;i++){
-        const oy=cy+i*rng(2.5,4);
-        const ox=cx+rng(-4,4)*Math.sin(i*0.6);
-        const r=rng(1.8,3.5)*(1-i*0.06);
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="${Math.max(1,r).toFixed(1)}" fill="${flr.petals}" opacity="${(0.8-i*0.04).toFixed(2)}"/>`;
-      }
-    }
-    else if(flr.type==='white-bloom'){
-      // Delicate 6-petal flower
-      for(let p=0;p<6;p++){
-        const a=(p/6)*Math.PI*2;
-        const px=cx+Math.cos(a)*sz*0.5;
-        const py=cy+Math.sin(a)*sz*0.5;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.2).toFixed(1)}" fill="${flr.petals}" opacity="0.7" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
-      }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.15).toFixed(1)}" fill="#E8D8B0"/>`;
-    }
-    else {
-      // Generic peony / lavender - lush overlapping petals
-      const petals=6+Math.floor(Math.random()*3);
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2+rng(-0.2,0.2);
-        const dist=sz*rng(0.4,0.7);
-        const px=cx+Math.cos(a)*dist;
-        const py=cy+Math.sin(a)*dist;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*rng(0.3,0.5)).toFixed(1)}" ry="${(sz*rng(0.2,0.35)).toFixed(1)}" fill="${flr.petals}" opacity="${rng(0.6,0.85).toFixed(2)}" transform="rotate(${(a*180/Math.PI+rng(-15,15)).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
-      }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.2).toFixed(1)}" fill="${flr.center}"/>`;
-    }
-    g+=`</g>`;
-    return g;
-  }
-
-  // Lush vines from all edges, filling the full height
-  const vines=[
-    // Left edge
-    {x:-5,y:h*0.08,dir:'right',seg:8},
-    {x:-5,y:h*0.28,dir:'right',seg:9},
-    {x:-5,y:h*0.48,dir:'right',seg:8},
-    {x:-5,y:h*0.68,dir:'right',seg:9},
-    {x:-5,y:h*0.88,dir:'right',seg:8},
-    // Right edge
-    {x:w+5,y:h*0.12,dir:'left',seg:8},
-    {x:w+5,y:h*0.35,dir:'left',seg:9},
-    {x:w+5,y:h*0.55,dir:'left',seg:8},
-    {x:w+5,y:h*0.75,dir:'left',seg:9},
-    {x:w+5,y:h*0.92,dir:'left',seg:7},
-    // Bottom edge
-    {x:w*0.1,y:h+5,dir:'up',seg:9},
-    {x:w*0.35,y:h+5,dir:'up',seg:8},
-    {x:w*0.6,y:h+5,dir:'up',seg:8},
-    {x:w*0.85,y:h+5,dir:'up',seg:9},
-    // Top edge
-    {x:w*0.2,y:-5,dir:'down',seg:7},
-    {x:w*0.7,y:-5,dir:'down',seg:7},
-  ];
-
-  vines.forEach((v,vi)=>{
-    const vine=makeVinePath(v.x,v.y,v.dir,v.seg);
-    const baseDelay=vi*0.15;
-    const stemColor=pick(greens);
-
-    // Main stem
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${stemColor}" stroke-width="2.2" opacity="0.5" style="--len:${vine.len};--dur:${rng(1.4,2.2).toFixed(1)}s;--d:${baseDelay.toFixed(2)}s"/>`;
-
-    // Branch offshoots
-    vine.pts.forEach((pt,pi)=>{
-      if(pi<2||Math.random()>0.35)return;
-      const bDir=Math.random()>0.5?'right':'left';
-      const branch=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*3));
-      const bDelay=baseDelay+pi*0.12+0.3;
-      svg+=`<path class="v-stem" d="${branch.d}" stroke="${pick(greens)}" stroke-width="1.4" opacity="0.35" style="--len:${branch.len};--dur:${rng(1,1.6).toFixed(1)}s;--d:${bDelay.toFixed(2)}s"/>`;
-
-      // Sub-branch leaves
-      branch.pts.forEach((bp,bi)=>{
-        if(bi===0)return;
-        const lSize=rng(6,12);
-        const lDelay=bDelay+bi*0.12+0.2;
-        svg+=`${leafPath(bp.x,bp.y,lSize,rng(0,360).toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
-      });
-    });
-
-    // Leaves along main stem
-    vine.pts.forEach((pt,pi)=>{
-      if(pi===0)return;
-      const lDelay=baseDelay+pi*0.13+0.3;
-      const lSize=rng(8,16);
-      const rot=rng(0,360);
-      svg+=`${leafPath(pt.x,pt.y,lSize,rot.toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
-      // Paired leaf
-      if(Math.random()>0.4){
-        const s2=lSize*0.7;
-        svg+=`${leafPath(pt.x+rng(-6,6),pt.y+rng(-6,6),s2,(rot+rng(30,60)).toFixed(0))} style="--d:${(lDelay+0.1).toFixed(2)}s"/>`;
-      }
-    });
-
-    // Flowers and buds along the vine
-    vine.pts.forEach((pt,pi)=>{
-      if(pi<2)return;
-      const fDelay=baseDelay+pi*0.15+0.6;
-      if(Math.random()<0.55){
-        // Flower
-        const flr=pick(flowerPalettes);
-        svg+=makeFlower(pt.x+rng(-5,5),pt.y+rng(-5,5),fDelay,flr);
-      }
-      if(Math.random()<0.4){
-        // Small bud
-        const budColor=pick(flowerPalettes).petals;
-        const bx=pt.x+rng(-8,8),by=pt.y+rng(-8,8);
-        svg+=`<g class="v-bud" style="--d:${(fDelay+0.2).toFixed(2)}s"><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rng(2,4).toFixed(1)}" fill="${budColor}" opacity="0.6"/></g>`;
-      }
-    });
-  });
-
-  svg+=`</svg>`;
-  canvas.innerHTML=svg;
-  canvas.classList.remove('withdrawing');
-}
-
-function withdrawVines(callback){
-  const elapsed=Date.now()-vineStartTime;
-  const remaining=Math.max(0,VINE_MIN_MS-elapsed);
-  setTimeout(()=>{
-    const canvas=$('#vineCanvas');
-    canvas.classList.add('withdrawing');
-    setTimeout(()=>{
-      canvas.innerHTML='';
-      if(callback)callback();
-    },700);
-  },remaining);
-}
 
 // ========== INIT ==========
 renderRecipes();
