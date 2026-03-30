@@ -317,8 +317,22 @@ body{
 .detail-actions{display:flex;gap:10px;margin-top:24px}
 
 /* ========== SCAN TAB ========== */
+.scan-mode-toggle{
+  display:flex;gap:8px;margin-bottom:20px;
+  background:var(--surface-alt);border-radius:var(--radius-lg);padding:4px;
+}
+.scan-mode-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  height:40px;border-radius:var(--radius-md);font-size:13px;font-weight:500;
+  color:var(--text-muted);transition:all var(--transition);
+}
+.scan-mode-btn:active{transform:scale(0.97)}
+.scan-mode-btn.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+.scan-mode-btn svg{width:16px;height:16px}
+
 .scan-section{margin-bottom:24px}
-.scan-section-title{font-family:var(--font-display);font-size:19px;margin-bottom:10px}
+.scan-section-title{font-family:var(--font-display);font-size:19px;margin-bottom:4px}
+.scan-section-desc{font-size:13px;color:var(--text-muted);margin-bottom:12px;line-height:1.5}
 
 .api-key-section{
   background:var(--surface);border:1px solid var(--border-light);
@@ -532,8 +546,19 @@ body{
     </div>
   </div>
 
+  <!-- Mode Toggle -->
+  <div class="scan-mode-toggle">
+    <button class="scan-mode-btn active" data-mode="scan">
+      <i data-lucide="scan-line"></i> Scan a Recipe
+    </button>
+    <button class="scan-mode-btn" data-mode="identify">
+      <i data-lucide="utensils"></i> Identify a Dish
+    </button>
+  </div>
+
   <div class="scan-section" id="scanUploadSection">
-    <div class="scan-section-title">Upload Recipe Photos</div>
+    <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
+    <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
     <div class="upload-zone" id="uploadZone">
       <div class="upload-zone-icon"><i data-lucide="image-plus"></i></div>
       <div class="upload-zone-text">Tap to select photos</div>
@@ -543,7 +568,7 @@ body{
     <div class="preview-grid" id="previewGrid"></div>
     <div style="margin-top:16px">
       <button class="btn btn-primary btn-block btn-icon" id="scanBtn" disabled>
-        <i data-lucide="scan-line"></i> Scan Recipe
+        <i data-lucide="scan-line"></i> <span id="scanBtnText">Scan Recipe</span>
       </button>
     </div>
     <div class="scan-error" id="scanError" style="display:none"></div>
@@ -551,7 +576,7 @@ body{
 
   <div class="scan-loading" id="scanLoading" style="display:none">
     <div class="scan-loading-spinner"></div>
-    <div class="scan-loading-text">Reading your recipe...</div>
+    <div class="scan-loading-text" id="scanLoadingText">Reading your recipe...</div>
   </div>
 </div>
 
@@ -934,6 +959,24 @@ $('#recipeForm').addEventListener('submit',e=>{
 });
 
 // ========== SCAN ==========
+let scanMode='scan';
+$$('.scan-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    scanMode=btn.dataset.mode;
+    $$('.scan-mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(scanMode==='identify'){
+      $('#scanSectionTitle').textContent='Snap a Dish';
+      $('#scanSectionDesc').textContent='Take a photo of any meal and we will try to figure out what it is and how to make it.';
+      $('#scanBtnText').textContent='Identify Dish';
+    }else{
+      $('#scanSectionTitle').textContent='Upload Recipe Photos';
+      $('#scanSectionDesc').textContent='Take a photo of a recipe from a cookbook, website, or handwritten card.';
+      $('#scanBtnText').textContent='Scan Recipe';
+    }
+  });
+});
+
 const apiKeyInput=$('#apiKeyInput');
 const apiKeyStatus=$('#apiKeyStatus');
 const HARDCODED_KEY='AIzaSyBT8pa8G1ynmSXzK8gQWYUIN8_-BTRcgws';
@@ -976,6 +1019,7 @@ $('#scanBtn').addEventListener('click',async()=>{
   $('#scanError').style.display='none';
   $('#scanUploadSection').style.display='none';
   $('#scanLoading').style.display='block';
+  $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
 
   try{
     const parts=[];
@@ -983,7 +1027,8 @@ $('#scanBtn').addEventListener('click',async()=>{
       const base64=await fileToBase64(file);
       parts.push({inline_data:{mime_type:file.type,data:base64}});
     }
-    parts.push({text:`Look at this recipe image and extract the recipe information. Return a JSON object with exactly these fields:
+
+    const scanPrompt=`Look at this recipe image and extract the recipe information. Return a JSON object with exactly these fields:
 {
   "name": "recipe name",
   "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
@@ -993,7 +1038,21 @@ $('#scanBtn').addEventListener('click',async()=>{
   "instructions": ["step 1", "step 2"],
   "notes": "any tips or notes, or empty string"
 }
-Return ONLY valid JSON, no markdown, no code fences, no extra text.`});
+Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
+
+    const identifyPrompt=`Look at this photo of a dish or meal. Identify what the food is, then create a complete recipe to recreate it at home. Be specific with ingredients and measurements. Return a JSON object with exactly these fields:
+{
+  "name": "name of the dish",
+  "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
+  "time": "estimated cook time like 30 min",
+  "servings": "number of servings like 4",
+  "ingredients": ["ingredient 1 with measurement", "ingredient 2 with measurement"],
+  "instructions": ["step 1", "step 2"],
+  "notes": "what you identified in the photo and any tips for recreating it"
+}
+Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
+
+    parts.push({text:scanMode==='identify'?identifyPrompt:scanPrompt});
 
     const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
       method:'POST',
@@ -1024,7 +1083,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`});
     $('#scanLoading').style.display='none';
     $('#scanUploadSection').style.display='block';
     $('#formModal').classList.add('open');
-    toast('Recipe scanned successfully');
+    toast(scanMode==='identify'?'Dish identified successfully':'Recipe scanned successfully');
     selectedFiles=[];
     $('#previewGrid').innerHTML='';
     $('#photoInput').value='';
