@@ -365,15 +365,42 @@ body{
 }
 
 .scan-loading{
-  text-align:center;padding:40px 20px;
+  position:relative;text-align:center;padding:40px 20px;min-height:320px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
-.scan-loading-spinner{
-  width:40px;height:40px;border:3px solid var(--border);
-  border-top-color:var(--accent);border-radius:50%;
-  animation:spin 0.8s linear infinite;margin:0 auto 16px;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.scan-loading-text{font-size:15px;color:var(--text-muted);font-style:italic}
+.scan-loading-text{font-size:15px;color:var(--text-muted);font-style:italic;position:relative;z-index:2}
+
+/* Vine animation container */
+.vine-canvas{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.vine-canvas svg{width:100%;height:100%}
+
+/* Vine paths */
+.vine-stem{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;opacity:0.4}
+.vine-stem.thin{stroke-width:1.5;opacity:0.25}
+.vine-leaf{fill:var(--accent);opacity:0;transform-origin:center}
+.vine-flower{opacity:0;transform-origin:center}
+.vine-flower-petal{fill:var(--accent);opacity:0.7}
+.vine-flower-center{fill:var(--bg);opacity:0.9}
+
+/* Draw animation for stems */
+.vine-stem{stroke-dasharray:var(--vine-length);stroke-dashoffset:var(--vine-length);animation:vineGrow 2.5s ease forwards}
+@keyframes vineGrow{to{stroke-dashoffset:0}}
+
+/* Leaf unfurl */
+.vine-leaf{animation:leafGrow 0.6s ease forwards}
+@keyframes leafGrow{from{opacity:0;transform:scale(0) rotate(-30deg)}to{opacity:0.45;transform:scale(1) rotate(0deg)}}
+
+/* Flower bloom */
+.vine-flower{animation:flowerBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes flowerBloom{from{opacity:0;transform:scale(0)}to{opacity:0.8;transform:scale(1)}}
+
+/* Withdraw animation */
+.vine-canvas.withdrawing .vine-stem{animation:vineWithdraw 0.8s ease forwards}
+@keyframes vineWithdraw{from{stroke-dashoffset:0;opacity:0.5}to{stroke-dashoffset:var(--vine-length);opacity:0}}
+.vine-canvas.withdrawing .vine-leaf{animation:leafShrink 0.4s ease forwards}
+@keyframes leafShrink{to{opacity:0;transform:scale(0) rotate(30deg)}}
+.vine-canvas.withdrawing .vine-flower{animation:flowerShrink 0.5s ease forwards}
+@keyframes flowerShrink{to{opacity:0;transform:scale(0)}}
 
 .scan-error{
   background:rgba(196,90,90,0.08);border:1px solid rgba(196,90,90,0.2);
@@ -575,7 +602,7 @@ body{
   </div>
 
   <div class="scan-loading" id="scanLoading" style="display:none">
-    <div class="scan-loading-spinner"></div>
+    <div class="vine-canvas" id="vineCanvas"></div>
     <div class="scan-loading-text" id="scanLoadingText">Reading your recipe...</div>
   </div>
 </div>
@@ -1018,8 +1045,9 @@ $('#scanBtn').addEventListener('click',async()=>{
 
   $('#scanError').style.display='none';
   $('#scanUploadSection').style.display='none';
-  $('#scanLoading').style.display='block';
+  $('#scanLoading').style.display='flex';
   $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
+  createVines();
 
   try{
     const parts=[];
@@ -1054,7 +1082,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
 
     parts.push({text:scanMode==='identify'?identifyPrompt:scanPrompt});
 
-    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+    const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({contents:[{parts}]})
@@ -1080,20 +1108,24 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
     $('#fNotes').value=parsed.notes||'';
     $('#formSubmitBtn').textContent='Save Recipe';
 
-    $('#scanLoading').style.display='none';
-    $('#scanUploadSection').style.display='block';
-    $('#formModal').classList.add('open');
-    toast(scanMode==='identify'?'Dish identified successfully':'Recipe scanned successfully');
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#formModal').classList.add('open');
+      toast(scanMode==='identify'?'Dish identified successfully':'Recipe scanned successfully');
+    });
     selectedFiles=[];
     $('#previewGrid').innerHTML='';
     $('#photoInput').value='';
     $('#scanBtn').disabled=true;
 
   }catch(err){
-    $('#scanLoading').style.display='none';
-    $('#scanUploadSection').style.display='block';
-    $('#scanError').style.display='block';
-    $('#scanError').textContent='Scan failed: '+err.message;
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#scanError').style.display='block';
+      $('#scanError').textContent='Scan failed: '+err.message;
+    });
   }
 });
 
@@ -1205,6 +1237,114 @@ function showConfirm(title,text,onOk){
 }
 $('#confirmCancel').addEventListener('click',()=>$('#confirmOverlay').classList.remove('open'));
 $('#confirmOk').addEventListener('click',()=>{$('#confirmOverlay').classList.remove('open');if(confirmCallback)confirmCallback()});
+
+// ========== VINE ANIMATION ==========
+function createVines(){
+  const canvas=$('#vineCanvas');
+  const w=canvas.offsetWidth||375;
+  const h=canvas.offsetHeight||320;
+  let svgContent=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+
+  function makeVinePath(startX,startY,dir,segments){
+    let pts=[{x:startX,y:startY}];
+    for(let i=0;i<segments;i++){
+      const prev=pts[pts.length-1];
+      let nx,ny;
+      const spread=35+Math.random()*25;
+      if(dir==='right'){nx=prev.x+spread;ny=prev.y+(Math.random()-0.5)*50}
+      else if(dir==='left'){nx=prev.x-spread;ny=prev.y+(Math.random()-0.5)*50}
+      else{nx=prev.x+(Math.random()-0.5)*50;ny=prev.y-spread}
+      nx=Math.max(-10,Math.min(w+10,nx));
+      ny=Math.max(-10,Math.min(h+10,ny));
+      pts.push({x:nx,y:ny});
+    }
+    let d=`M${pts[0].x},${pts[0].y}`;
+    for(let i=1;i<pts.length;i++){
+      const prev=pts[i-1],cur=pts[i];
+      const cpx1=prev.x+(cur.x-prev.x)*0.5+(Math.random()-0.5)*25;
+      const cpy1=prev.y+(Math.random()-0.5)*35;
+      const cpx2=cur.x-(cur.x-prev.x)*0.3+(Math.random()-0.5)*25;
+      const cpy2=cur.y+(Math.random()-0.5)*35;
+      d+=` C${cpx1},${cpy1} ${cpx2},${cpy2} ${cur.x},${cur.y}`;
+    }
+    return {d,pts,len:segments*55};
+  }
+
+  // Main vines from edges
+  const vines=[
+    {x:0,y:h*0.85,dir:'right',seg:8},
+    {x:w,y:h*0.75,dir:'left',seg:8},
+    {x:0,y:h*0.35,dir:'right',seg:7},
+    {x:w,y:h*0.2,dir:'left',seg:7},
+    {x:0,y:h*0.55,dir:'right',seg:6},
+    {x:w,y:h*0.5,dir:'left',seg:6},
+    {x:w*0.15,y:h,dir:'up',seg:7},
+    {x:w*0.85,y:h,dir:'up',seg:7},
+    {x:w*0.5,y:h,dir:'up',seg:5},
+  ];
+
+  vines.forEach((v,vi)=>{
+    const vine=makeVinePath(v.x,v.y,v.dir,v.seg);
+    const delay=vi*0.2;
+
+    // Main stem
+    svgContent+=`<path class="vine-stem" d="${vine.d}" style="--vine-length:${vine.len};animation-delay:${delay}s"/>`;
+
+    // Small branch offshoots
+    vine.pts.forEach((pt,pi)=>{
+      if(pi<2||Math.random()>0.4)return;
+      const branchDir=Math.random()>0.5?'right':'left';
+      const branch=makeVinePath(pt.x,pt.y,branchDir,2+Math.floor(Math.random()*2));
+      svgContent+=`<path class="vine-stem thin" d="${branch.d}" style="--vine-length:${branch.len};animation-delay:${delay+pi*0.15+0.3}s"/>`;
+    });
+
+    // Leaves
+    vine.pts.forEach((pt,pi)=>{
+      if(pi===0)return;
+      const leafDelay=delay+pi*0.18+0.4;
+      const leafSize=10+Math.random()*8;
+      const rot=Math.random()*360;
+      // Teardrop leaf shape using path
+      svgContent+=`<ellipse class="vine-leaf" cx="${pt.x}" cy="${pt.y}" rx="${leafSize}" ry="${leafSize*0.45}" transform="rotate(${rot},${pt.x},${pt.y})" style="animation-delay:${leafDelay}s"/>`;
+      // Sometimes add a second smaller leaf
+      if(Math.random()>0.5){
+        const s2=leafSize*0.6;
+        svgContent+=`<ellipse class="vine-leaf" cx="${pt.x+6}" cy="${pt.y-5}" rx="${s2}" ry="${s2*0.45}" transform="rotate(${rot+40},${pt.x+6},${pt.y-5})" style="animation-delay:${leafDelay+0.15}s"/>`;
+      }
+    });
+
+    // Flowers
+    vine.pts.forEach((pt,pi)=>{
+      if(pi<2||Math.random()>0.45)return;
+      const fDelay=delay+pi*0.2+0.8;
+      const fSize=7+Math.random()*5;
+      let flower=`<g class="vine-flower" style="animation-delay:${fDelay}s">`;
+      const petalCount=5+Math.floor(Math.random()*2);
+      for(let p=0;p<petalCount;p++){
+        const angle=(p/petalCount)*Math.PI*2;
+        const px=pt.x+Math.cos(angle)*fSize;
+        const py=pt.y+Math.sin(angle)*fSize;
+        flower+=`<ellipse class="vine-flower-petal" cx="${px}" cy="${py}" rx="${fSize*0.45}" ry="${fSize*0.3}" transform="rotate(${angle*180/Math.PI},${px},${py})"/>`;
+      }
+      flower+=`<circle class="vine-flower-center" cx="${pt.x}" cy="${pt.y}" r="${fSize*0.35}"/>`;
+      flower+=`</g>`;
+      svgContent+=flower;
+    });
+  });
+
+  svgContent+=`</svg>`;
+  canvas.innerHTML=svgContent;
+  canvas.classList.remove('withdrawing');
+}
+
+function withdrawVines(callback){
+  const canvas=$('#vineCanvas');
+  canvas.classList.add('withdrawing');
+  setTimeout(()=>{
+    canvas.innerHTML='';
+    if(callback)callback();
+  },900);
+}
 
 // ========== INIT ==========
 renderRecipes();
