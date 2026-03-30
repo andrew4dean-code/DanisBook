@@ -518,7 +518,7 @@ body{
 
 <!-- SCAN TAB -->
 <div class="tab-panel" id="panel-scan">
-  <div class="api-key-section">
+  <div class="api-key-section" style="display:none">
     <div class="api-key-header">
       <span class="api-key-title">Gemini API Key</span>
       <span class="api-key-status" id="apiKeyStatus"></span>
@@ -936,8 +936,9 @@ $('#recipeForm').addEventListener('submit',e=>{
 // ========== SCAN ==========
 const apiKeyInput=$('#apiKeyInput');
 const apiKeyStatus=$('#apiKeyStatus');
-const savedKey=loadData('rb_api_key','');
-if(savedKey){apiKeyInput.value=savedKey;apiKeyStatus.textContent='Saved';apiKeyStatus.className='api-key-status saved'}
+const HARDCODED_KEY='AIzaSyBT8pa8G1ynmSXzK8gQWYUIN8_-BTRcgws';
+const savedKey=HARDCODED_KEY||loadData('rb_api_key','');
+if(savedKey){saveData('rb_api_key',savedKey);apiKeyInput.value=savedKey;apiKeyStatus.textContent='Saved';apiKeyStatus.className='api-key-status saved'}
 else{apiKeyStatus.textContent='Not set';apiKeyStatus.className='api-key-status missing'}
 
 $('#saveApiKeyBtn').addEventListener('click',()=>{
@@ -968,7 +969,7 @@ function renderPreviews(){
 }
 
 $('#scanBtn').addEventListener('click',async()=>{
-  const key=loadData('rb_api_key','');
+  const key=HARDCODED_KEY||loadData('rb_api_key','');
   if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key above first.';return}
   if(selectedFiles.length===0)return;
 
