@@ -391,7 +391,7 @@ body{
 .v-bloom{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
 @keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
 .vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,3.5s) ease-in-out calc(var(--d,0s) + 0.9s) infinite}
-@keyframes vBloomSway{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.04) rotate(var(--sa,2deg))}65%{transform:scale(0.97) rotate(calc(var(--sa,2deg) * -0.7))}}
+@keyframes vBloomSway{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.04) rotate(var(--sa,3deg))}65%{transform:scale(0.97) rotate(calc(var(--sa,3deg) * -0.7))}}
 
 /* Buds */
 .v-bud{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBud 0.6s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
@@ -612,17 +612,16 @@ body{
 
 <!-- SCAN TAB -->
 <div class="tab-panel" id="panel-scan">
-  <!-- Mode Toggle -->
-  <div class="scan-mode-toggle">
-    <button class="scan-mode-btn active" data-mode="scan">
-      <i data-lucide="scan-line"></i> Scan a Recipe
-    </button>
-    <button class="scan-mode-btn" data-mode="identify">
-      <i data-lucide="utensils"></i> Identify a Dish
-    </button>
-  </div>
-
   <div class="scan-section" id="scanUploadSection">
+    <!-- Mode Toggle -->
+    <div class="scan-mode-toggle">
+      <button class="scan-mode-btn active" data-mode="scan">
+        <i data-lucide="scan-line"></i> Scan a Recipe
+      </button>
+      <button class="scan-mode-btn" data-mode="identify">
+        <i data-lucide="utensils"></i> Identify a Dish
+      </button>
+    </div>
     <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
     <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
     <div class="upload-zone" id="uploadZone">
@@ -1224,8 +1223,12 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
     }
     if(!data)throw new Error('All models are rate limited. Please try again in a few minutes.');
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const friendly=m=>{const e=new Error(m);e.friendly=true;throw e;};
+    if(!text)friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");
     const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
-    const parsed=JSON.parse(cleaned);
+    let parsed;
+    try{parsed=JSON.parse(cleaned);}catch(_){friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");}
+    if(!parsed?.name&&!parsed?.ingredients?.length)friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");
 
     // Pre-fill form
     editingId=null;
@@ -1255,7 +1258,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
       $('#scanLoading').style.display='none';
       $('#scanUploadSection').style.display='block';
       $('#scanError').style.display='block';
-      $('#scanError').textContent='Scan failed: '+err.message;
+      $('#scanError').textContent=err.friendly?err.message:'Scan failed: '+err.message;
     });
   }
 });
@@ -1464,7 +1467,7 @@ function createVines(){
   // Flower generator — sz now 3× larger
   function makeFlower(cx,cy,delay,flr){
     const sz=rng(28,58);
-    const sa=rng(1.5,3.5).toFixed(1);
+    const sa=rng(2.3,5.3).toFixed(1);
     const sd=rng(2.5,5.5).toFixed(1);
     let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s;--sa:${sa}deg;--sd:${sd}s">`;
 
@@ -1643,7 +1646,7 @@ function createVines(){
         const bx=pt.x+rng(-25,25),by=pt.y+rng(-25,25);
         if(!inSafe(bx,by,22)){
           const bs=rng(8,16);
-          svg+=`<g class="v-bud" style="--d:${(fd+0.2).toFixed(2)}s;--sa:2deg;--sd:${rng(4,8).toFixed(1)}s"><ellipse cx="${f(bx)}" cy="${f(by)}" rx="${f(bs*0.58)}" ry="${f(bs)}" fill="${flr.p2}" opacity="0.8"/><ellipse cx="${f(bx)}" cy="${f(by+bs*0.22)}" rx="${f(bs*0.38)}" ry="${f(bs*0.58)}" fill="${flr.p1}" opacity="0.5"/></g>`;
+          svg+=`<g class="v-bud" style="--d:${(fd+0.2).toFixed(2)}s;--sa:3deg;--sd:${rng(4,8).toFixed(1)}s"><ellipse cx="${f(bx)}" cy="${f(by)}" rx="${f(bs*0.58)}" ry="${f(bs)}" fill="${flr.p2}" opacity="0.8"/><ellipse cx="${f(bx)}" cy="${f(by+bs*0.22)}" rx="${f(bs*0.38)}" ry="${f(bs*0.58)}" fill="${flr.p1}" opacity="0.5"/></g>`;
         }
       }
     });
