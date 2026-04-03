@@ -1445,7 +1445,7 @@ function createVines(){
     const x4=x-dir*r*0.15,y4=y-r*0.55;
     const d=`M${f(x)},${f(y)} C${f(x1)},${f(y1)} ${f(x2)},${f(y2-r*0.15)} ${f(x2)},${f(y2)} C${f(x3)},${f(y3)} ${f(x4)},${f(y4)} ${f(x+dir*r*0.18)},${f(y-r*0.72)}`;
     const len=r*5;
-    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(2,4).toFixed(1)}" style="--len:${f(len)};--dur:${rng(0.9,1.5).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
+    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(1,2).toFixed(1)}" style="--len:${f(len)};--dur:${rng(0.9,1.5).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
   }
 
   // Leaf — same logic, size passed in (call sites use 3× values)
@@ -1593,9 +1593,9 @@ function createVines(){
     const dur=rng(1.8,2.8).toFixed(1);
 
     // Triple-stroke for depth: shadow → main → highlight
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(12,16).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(8,12).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(2,4).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(6,8).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(4,6).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(1,2).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
 
     // Branches
     vine.pts.forEach((pt,pi)=>{
@@ -1605,11 +1605,11 @@ function createVines(){
       const bbd=bd+pi*0.1+0.22;
       const bdur=rng(0.9,1.7).toFixed(1);
       const bc=pick(greens),bdk=pick(darkG);
-      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(6.5,9).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
-      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(4.5,7).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(3,4.5).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(2,3.5).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
 
       br.pts.forEach((bp,bi)=>{
-        if(bi===0||inSafe(bp.x,bp.y,10))return;
+        if(bi===0||inSafe(bp.x,bp.y,35))return;
         svg+=makeLeaf(bp.x,bp.y,rng(22,42),rng(0,360),bbd+bi*0.1+0.15);
       });
       if(Math.random()>0.45){
@@ -1621,7 +1621,7 @@ function createVines(){
 
     // Leaves along main stem
     vine.pts.forEach((pt,pi)=>{
-      if(pi===0||inSafe(pt.x,pt.y,15))return;
+      if(pi===0||inSafe(pt.x,pt.y,35))return;
       const ld=bd+pi*0.11+0.22;
       svg+=makeLeaf(pt.x,pt.y,rng(32,60),rng(0,360),ld);
       if(Math.random()>0.38){
@@ -1636,12 +1636,12 @@ function createVines(){
       if(pi<2)return;
       const fd=bd+pi*0.14+0.48;
       const fx=pt.x+rng(-18,18),fy=pt.y+rng(-18,18);
-      if(Math.random()<0.6&&!inSafe(fx,fy,5))
+      if(Math.random()<0.6&&!inSafe(fx,fy,65))
         svg+=makeFlower(fx,fy,fd,pick(flowerPalettes));
       if(Math.random()<0.45){
         const flr=pick(flowerPalettes);
         const bx=pt.x+rng(-25,25),by=pt.y+rng(-25,25);
-        if(!inSafe(bx,by,5)){
+        if(!inSafe(bx,by,22)){
           const bs=rng(8,16);
           svg+=`<g class="v-bud" style="--d:${(fd+0.2).toFixed(2)}s;--sa:2deg;--sd:${rng(4,8).toFixed(1)}s"><ellipse cx="${f(bx)}" cy="${f(by)}" rx="${f(bs*0.58)}" ry="${f(bs)}" fill="${flr.p2}" opacity="0.8"/><ellipse cx="${f(bx)}" cy="${f(by+bs*0.22)}" rx="${f(bs*0.38)}" ry="${f(bs*0.58)}" fill="${flr.p1}" opacity="0.5"/></g>`;
         }
