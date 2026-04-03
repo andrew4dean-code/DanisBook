@@ -1395,7 +1395,7 @@ function createVines(){
   function f(n){return n.toFixed(1)}
 
   // Safe zone: center area where the loading text lives — vines steer around it
-  const szX1=w*0.2,szX2=w*0.8,szY1=h*0.36,szY2=h*0.64;
+  const szX1=w*0.27,szX2=w*0.73,szY1=h*0.42,szY2=h*0.58;
   function inSafe(x,y,pad=0){return x>szX1-pad&&x<szX2+pad&&y>szY1-pad&&y<szY2+pad}
 
   function petalUp(cx,cy,pw,ph){
@@ -1415,7 +1415,7 @@ function createVines(){
       else if(dir==='up'){nx=p.x+wobble;ny=p.y-spread}
       else{nx=p.x+wobble;ny=p.y+spread}
       // Steer around the text safe zone
-      const margin=40;
+      const margin=25;
       if(inSafe(nx,ny,margin)){
         if(dir==='right'||dir==='left'){
           const midY=(szY1+szY2)/2;
@@ -1593,9 +1593,9 @@ function createVines(){
     const dur=rng(1.8,2.8).toFixed(1);
 
     // Triple-stroke for depth: shadow → main → highlight
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(18,24).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(12,18).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(3,6).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(12,16).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(8,12).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(2,4).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
 
     // Branches
     vine.pts.forEach((pt,pi)=>{
@@ -1605,8 +1605,8 @@ function createVines(){
       const bbd=bd+pi*0.1+0.22;
       const bdur=rng(0.9,1.7).toFixed(1);
       const bc=pick(greens),bdk=pick(darkG);
-      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(10,14).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
-      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(7,11).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(6.5,9).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(4.5,7).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
 
       br.pts.forEach((bp,bi)=>{
         if(bi===0||inSafe(bp.x,bp.y,10))return;
