@@ -1369,11 +1369,8 @@ $('#confirmCancel').addEventListener('click',()=>$('#confirmOverlay').classList.
 $('#confirmOk').addEventListener('click',()=>{$('#confirmOverlay').classList.remove('open');if(confirmCallback)confirmCallback()});
 
 // ========== VINE ANIMATION ==========
-let vineStartTime=0;
-const VINE_MIN_MS=4000;
 
 function createVines(){
-  vineStartTime=Date.now();
   const canvas=$('#vineCanvas');
   const w=canvas.offsetWidth||375;
   const h=canvas.offsetHeight||320;
@@ -1582,16 +1579,12 @@ function createVines(){
 }
 
 function withdrawVines(callback){
-  const elapsed=Date.now()-vineStartTime;
-  const remaining=Math.max(0,VINE_MIN_MS-elapsed);
+  const canvas=$('#vineCanvas');
+  canvas.classList.add('withdrawing');
   setTimeout(()=>{
-    const canvas=$('#vineCanvas');
-    canvas.classList.add('withdrawing');
-    setTimeout(()=>{
-      canvas.innerHTML='';
-      if(callback)callback();
-    },700);
-  },remaining);
+    canvas.innerHTML='';
+    if(callback)callback();
+  },700);
 }
 
 // ========== INIT ==========
