@@ -383,21 +383,21 @@ body{
 @keyframes vGrow{to{stroke-dashoffset:0}}
 
 /* Leaves — transform-box:fill-box lets transform-origin:center work on SVG groups */
-.v-leaf-g{opacity:0;transform-box:fill-box;transform-origin:center;animation:vLeaf 0.7s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+.v-leaf-g{opacity:0;transform-box:fill-box;transform-origin:center;animation:vLeaf 1.05s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
 @keyframes vLeaf{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
-.vine-canvas:not(.withdrawing) .v-leaf-g{animation:vLeaf 0.7s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vLeafSway var(--sd,4.5s) ease-in-out calc(var(--d,0s) + 0.7s) infinite}
+.vine-canvas:not(.withdrawing) .v-leaf-g{animation:vLeaf 1.05s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vLeafSway var(--sd,4.5s) ease-in-out calc(var(--d,0s) + 1.05s) infinite}
 @keyframes vLeafSway{0%,100%{transform:scale(1) rotate(0deg)}35%{transform:scale(1.02) rotate(var(--sa,3deg))}70%{transform:scale(0.99) rotate(calc(var(--sa,3deg) * -0.55))}}
 
 /* Flowers */
 .v-bloom{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
 @keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
-.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,3.5s) ease-in-out calc(var(--d,0s) + 0.9s) infinite}
+.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 1.35s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,3.5s) ease-in-out calc(var(--d,0s) + 1.35s) infinite}
 @keyframes vBloomSway{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.04) rotate(var(--sa,3deg))}65%{transform:scale(0.97) rotate(calc(var(--sa,3deg) * -0.7))}}
 
 /* Buds */
-.v-bud{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBud 0.6s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+.v-bud{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBud 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
 @keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
-.vine-canvas:not(.withdrawing) .v-bud{animation:vBud 0.6s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,5s) ease-in-out calc(var(--d,0s) + 0.6s) infinite}
+.vine-canvas:not(.withdrawing) .v-bud{animation:vBud 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,5s) ease-in-out calc(var(--d,0s) + 0.9s) infinite}
 
 /* Withdraw */
 .vine-canvas.withdrawing .v-stem,.vine-canvas.withdrawing .v-tendril{animation:vShrink 0.7s ease forwards !important}
@@ -1455,7 +1455,7 @@ function createVines(){
     const x4=x-dir*r*0.15,y4=y-r*0.55;
     const d=`M${f(x)},${f(y)} C${f(x1)},${f(y1)} ${f(x2)},${f(y2-r*0.15)} ${f(x2)},${f(y2)} C${f(x3)},${f(y3)} ${f(x4)},${f(y4)} ${f(x+dir*r*0.18)},${f(y-r*0.72)}`;
     const len=r*5;
-    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(1,2).toFixed(1)}" style="--len:${f(len)};--dur:${rng(0.9,1.5).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
+    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(1,2).toFixed(1)}" style="--len:${f(len)};--dur:${rng(1.35,2.25).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
   }
 
   // Leaf — same logic, size passed in (call sites use 3× values)
@@ -1571,7 +1571,7 @@ function createVines(){
 
   // Vines arranged clockwise around the perimeter: top → right → bottom → left
   // Delay is proportional to clockwise position so they appear to sweep around the text.
-  const sweepDur=3.2;
+  const sweepDur=4.8;
   const rawVines=[
     // Top edge, left→right  (0°–90° clockwise)
     {x:w*0.08, y:-5,   dir:'down', seg:12},
@@ -1600,7 +1600,7 @@ function createVines(){
     // Clockwise staggered delay — each vine a fraction of sweepDur later
     const bd=(vi/rawVines.length)*sweepDur;
     const sc=pick(greens),dk=pick(darkG);
-    const dur=rng(1.8,2.8).toFixed(1);
+    const dur=rng(2.7,4.2).toFixed(1);
 
     // Triple-stroke for depth: shadow → main → highlight
     svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(6,8).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
@@ -1613,7 +1613,7 @@ function createVines(){
       const bDir=['right','left','up','down'].filter(d=>d!==v.dir)[Math.floor(Math.random()*3)];
       const br=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*4));
       const bbd=bd+pi*0.1+0.22;
-      const bdur=rng(0.9,1.7).toFixed(1);
+      const bdur=rng(1.35,2.55).toFixed(1);
       const bc=pick(greens),bdk=pick(darkG);
       svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(3,4.5).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
       svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(2,3.5).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
