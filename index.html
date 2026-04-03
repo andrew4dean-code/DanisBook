@@ -377,30 +377,31 @@ body{
 .vine-canvas{position:absolute;inset:-20px;overflow:hidden;pointer-events:none;z-index:1}
 .vine-canvas svg{width:100%;height:100%}
 
-/* Stems */
-.v-stem{fill:none;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:vGrow var(--dur,2s) ease forwards;animation-delay:var(--d,0s)}
+/* Stems & tendrils */
+.v-stem,.v-tendril{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:vGrow var(--dur,2s) cubic-bezier(0.25,0.46,0.45,0.94) var(--d,0s) forwards}
 @keyframes vGrow{to{stroke-dashoffset:0}}
 
-/* Leaves */
-.v-leaf{opacity:0;transform-origin:center;animation:vLeaf 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vLeaf{from{opacity:0;transform:scale(0) rotate(-40deg)}to{opacity:0.7;transform:scale(1) rotate(0deg)}}
+/* Leaves — transform-box:fill-box lets transform-origin:center work on SVG groups */
+.v-leaf-g{opacity:0;transform-box:fill-box;transform-origin:center;animation:vLeaf 0.7s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vLeaf{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+.vine-canvas:not(.withdrawing) .v-leaf-g{animation:vLeaf 0.7s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vLeafSway var(--sd,4.5s) ease-in-out calc(var(--d,0s) + 0.7s) infinite}
+@keyframes vLeafSway{0%,100%{transform:scale(1) rotate(0deg)}35%{transform:scale(1.02) rotate(var(--sa,3deg))}70%{transform:scale(0.99) rotate(calc(var(--sa,3deg) * -0.55))}}
 
-/* Flowers / blooms */
-.v-bloom{opacity:0;transform-origin:center;animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:0.9;transform:scale(1) rotate(0deg)}}
+/* Flowers */
+.v-bloom{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,3.5s) ease-in-out calc(var(--d,0s) + 0.9s) infinite}
+@keyframes vBloomSway{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.04) rotate(var(--sa,2deg))}65%{transform:scale(0.97) rotate(calc(var(--sa,2deg) * -0.7))}}
 
 /* Buds */
-.v-bud{opacity:0;animation:vBud 0.5s ease forwards;animation-delay:var(--d,0s)}
-@keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:0.7;transform:scale(1)}}
-
-/* Gentle sway for sustained blooms */
-@keyframes vSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(3deg)}}
-.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards,vSway 3s ease-in-out infinite;animation-delay:var(--d,0s),calc(var(--d,0s) + 0.8s)}
+.v-bud{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBud 0.6s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+.vine-canvas:not(.withdrawing) .v-bud{animation:vBud 0.6s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,5s) ease-in-out calc(var(--d,0s) + 0.6s) infinite}
 
 /* Withdraw */
-.vine-canvas.withdrawing .v-stem{animation:vShrink 0.6s ease forwards !important}
+.vine-canvas.withdrawing .v-stem,.vine-canvas.withdrawing .v-tendril{animation:vShrink 0.7s ease forwards !important}
 @keyframes vShrink{to{stroke-dashoffset:var(--len);opacity:0}}
-.vine-canvas.withdrawing .v-leaf,.vine-canvas.withdrawing .v-bloom,.vine-canvas.withdrawing .v-bud{animation:vFade 0.5s ease forwards !important}
+.vine-canvas.withdrawing .v-leaf-g,.vine-canvas.withdrawing .v-bloom,.vine-canvas.withdrawing .v-bud{animation:vFade 0.5s ease forwards !important}
 @keyframes vFade{to{opacity:0;transform:scale(0)}}
 
 .scan-error{
@@ -1374,203 +1375,252 @@ function createVines(){
   const canvas=$('#vineCanvas');
   const w=canvas.offsetWidth||375;
   const h=canvas.offsetHeight||320;
-  let svg=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // Botanical palette inspired by the watercolor reference
-  const greens=['#3D6B3D','#4A7C3F','#5A8F4E','#2D5A2D','#6B8F5E','#3A5F28'];
+  const greens=['#2D5A2D','#3D6B3D','#4A7C3F','#3A5F28','#4D6B35','#3F6030'];
+  const darkG =['#1A3A1A','#243D24','#2E4F2E','#223818','#2F4120','#1E3520'];
+
   const flowerPalettes=[
-    {petals:'#D4829A',center:'#C46A84',type:'wild-rose'},    // soft pink
-    {petals:'#B07EC5',center:'#8B5FA0',type:'lavender'},      // lavender purple
-    {petals:'#7BA3D4',center:'#5C87BD',type:'forget-me-not'}, // cornflower blue
-    {petals:'#E8C96E',center:'#C4A43D',type:'tulip'},         // golden/orange tulip
-    {petals:'#F0E6D8',center:'#D4C8A8',type:'white-bloom'},   // white/cream
-    {petals:'#D46B8A',center:'#B84D6D',type:'peony'},         // deep pink
-    {petals:'#9B7EC4',center:'#7B5EA4',type:'wisteria'},      // purple wisteria
-    {petals:'#C4705A',center:'#A85A44',type:'terracotta'},    // terracotta
+    {p1:'#EDB0C5',p2:'#D4829A',p3:'#B85C7A',center:'#FFD54F',type:'rose'},
+    {p1:'#C9AEE0',p2:'#B07EC5',p3:'#8450A8',center:'#FFE57A',type:'peony'},
+    {p1:'#A8CCF0',p2:'#7BA3D4',p3:'#4D7DB8',center:'#FFF176',type:'forget-me-not'},
+    {p1:'#F5E07A',p2:'#E8C66A',p3:'#C4A030',center:'#6D4C41',type:'tulip'},
+    {p1:'#FFFFFF',p2:'#F0E8D8',p3:'#D4C8A8',center:'#F9C800',type:'daisy'},
+    {p1:'#F7C4D0',p2:'#E87898',p3:'#C44870',center:'#FFD700',type:'rose'},
+    {p1:'#D0B8E8',p2:'#9B7EC4',p3:'#6A4EA0',center:'#FFF59D',type:'wisteria'},
+    {p1:'#F5A080',p2:'#E06040',p3:'#B83020',center:'#1A1A1A',type:'poppy'},
   ];
 
   function rng(min,max){return min+Math.random()*(max-min)}
   function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+  function f(n){return n.toFixed(1)}
 
+  // Realistic petal shape pointing upward from (cx,cy), tip at cy-ph
+  function petalUp(cx,cy,pw,ph){
+    return `M${f(cx)},${f(cy+ph*0.12)} C${f(cx+pw*0.65)},${f(cy+ph*0.18)} ${f(cx+pw*0.68)},${f(cy-ph*0.42)} ${f(cx)},${f(cy-ph)} C${f(cx-pw*0.68)},${f(cy-ph*0.42)} ${f(cx-pw*0.65)},${f(cy+ph*0.18)} ${f(cx)},${f(cy+ph*0.12)}Z`;
+  }
+
+  // Organic vine path
   function makeVinePath(sx,sy,dir,segs){
     let pts=[{x:sx,y:sy}];
     for(let i=0;i<segs;i++){
       const p=pts[pts.length-1];
-      const spread=30+Math.random()*30;
+      const spread=28+Math.random()*36;
+      const wobble=(Math.random()-0.5)*62;
       let nx,ny;
-      if(dir==='right'){nx=p.x+spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='left'){nx=p.x-spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='up'){nx=p.x+(Math.random()-0.5)*50;ny=p.y-spread}
-      else{nx=p.x+(Math.random()-0.5)*50;ny=p.y+spread}
-      pts.push({x:Math.max(-15,Math.min(w+15,nx)),y:Math.max(-15,Math.min(h+15,ny))});
+      if(dir==='right'){nx=p.x+spread;ny=p.y+wobble}
+      else if(dir==='left'){nx=p.x-spread;ny=p.y+wobble}
+      else if(dir==='up'){nx=p.x+wobble;ny=p.y-spread}
+      else{nx=p.x+wobble;ny=p.y+spread}
+      pts.push({x:Math.max(-20,Math.min(w+20,nx)),y:Math.max(-20,Math.min(h+20,ny))});
     }
-    let d=`M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    let d=`M${f(pts[0].x)},${f(pts[0].y)}`;
     for(let i=1;i<pts.length;i++){
-      const prev=pts[i-1],cur=pts[i];
-      const cx1=(prev.x+(cur.x-prev.x)*0.4+(Math.random()-0.5)*25).toFixed(1);
-      const cy1=(prev.y+(Math.random()-0.5)*35).toFixed(1);
-      const cx2=(cur.x-(cur.x-prev.x)*0.3+(Math.random()-0.5)*25).toFixed(1);
-      const cy2=(cur.y+(Math.random()-0.5)*35).toFixed(1);
-      d+=` C${cx1},${cy1} ${cx2},${cy2} ${cur.x.toFixed(1)},${cur.y.toFixed(1)}`;
+      const pr=pts[i-1],cu=pts[i];
+      d+=` C${f(pr.x+(cu.x-pr.x)*0.4+(Math.random()-0.5)*30)},${f(pr.y+(Math.random()-0.5)*42)} ${f(cu.x-(cu.x-pr.x)*0.3+(Math.random()-0.5)*30)},${f(cu.y+(Math.random()-0.5)*42)} ${f(cu.x)},${f(cu.y)}`;
     }
-    return {d,pts,len:segs*55};
+    return {d,pts,len:segs*60};
   }
 
-  // Build leaf SVG path (pointed teardrop shape)
-  function leafPath(cx,cy,size,rot){
+  // Spiral tendril at vine tip
+  function makeTendril(x,y,delay){
+    const r=rng(10,22);
+    const dir=Math.random()>0.5?1:-1;
+    const x1=x+dir*r,y1=y-r*0.35;
+    const x2=x+dir*r*0.15,y2=y-r;
+    const x3=x-dir*r*0.75,y3=y-r*0.55;
+    const x4=x-dir*r*0.15,y4=y-r*0.55;
+    const d=`M${f(x)},${f(y)} C${f(x1)},${f(y1)} ${f(x2)},${f(y2-r*0.15)} ${f(x2)},${f(y2)} C${f(x3)},${f(y3)} ${f(x4)},${f(y4)} ${f(x+dir*r*0.18)},${f(y-r*0.72)}`;
+    const len=r*5;
+    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(0.8,1.6).toFixed(1)}" style="--len:${f(len)};--dur:${rng(0.9,1.5).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
+  }
+
+  // Detailed leaf: ovate shape with midrib + side veins, baked rotation via inner SVG group
+  function makeLeaf(cx,cy,size,rot,delay){
     const s=size;
-    return `<path class="v-leaf" d="M${cx},${cy-s*0.5} Q${cx+s*0.4},${cy-s*0.1} ${cx},${cy+s*0.5} Q${cx-s*0.4},${cy-s*0.1} ${cx},${cy-s*0.5}Z" fill="${pick(greens)}" transform="rotate(${rot},${cx},${cy})"`;
+    const grn=pick(greens);
+    const drk=pick(darkG);
+    const sa=rng(1.5,4).toFixed(1);
+    const sd=rng(3.5,7).toFixed(1);
+    const body=`M${f(cx)},${f(cy-s*0.58)} C${f(cx+s*0.53)},${f(cy-s*0.42)} ${f(cx+s*0.57)},${f(cy+s*0.1)} ${f(cx)},${f(cy+s*0.62)} C${f(cx-s*0.57)},${f(cy+s*0.1)} ${f(cx-s*0.53)},${f(cy-s*0.42)} ${f(cx)},${f(cy-s*0.58)}Z`;
+    const mid=`M${f(cx)},${f(cy-s*0.52)} Q${f(cx+s*0.04)},${f(cy+s*0.04)} ${f(cx)},${f(cy+s*0.57)}`;
+    const veins=`M${f(cx)},${f(cy-s*0.12)} Q${f(cx+s*0.3)},${f(cy-s*0.28)} ${f(cx+s*0.45)},${f(cy-s*0.19)} M${f(cx)},${f(cy+s*0.14)} Q${f(cx+s*0.33)},${f(cy+s*0.03)} ${f(cx+s*0.47)},${f(cy+s*0.13)} M${f(cx)},${f(cy-s*0.12)} Q${f(cx-s*0.3)},${f(cy-s*0.28)} ${f(cx-s*0.45)},${f(cy-s*0.19)} M${f(cx)},${f(cy+s*0.14)} Q${f(cx-s*0.33)},${f(cy+s*0.03)} ${f(cx-s*0.47)},${f(cy+s*0.13)}`;
+    return `<g class="v-leaf-g" style="--d:${delay.toFixed(2)}s;--sa:${sa}deg;--sd:${sd}s"><g transform="rotate(${rot.toFixed(0)},${f(cx)},${f(cy)})"><path d="${body}" fill="${grn}" opacity="0.9"/><path d="${mid}" stroke="${drk}" stroke-width="0.9" fill="none" opacity="0.55"/><path d="${veins}" stroke="${drk}" stroke-width="0.55" fill="none" opacity="0.32"/></g></g>`;
   }
 
-  // Build different flower types as SVG
+  // Multi-type flower generator
   function makeFlower(cx,cy,delay,flr){
-    let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s">`;
-    const sz=rng(6,14);
+    const sz=rng(10,22);
+    const sa=rng(1.5,3.5).toFixed(1);
+    const sd=rng(2.5,5.5).toFixed(1);
+    let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s;--sa:${sa}deg;--sd:${sd}s">`;
 
-    if(flr.type==='wild-rose'){
-      // 5-petal open rose like in the reference
-      const petals=5;
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2-Math.PI/2;
-        const px=cx+Math.cos(a)*sz*0.6;
-        const py=cy+Math.sin(a)*sz*0.6;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.55).toFixed(1)}" ry="${(sz*0.4).toFixed(1)}" fill="${flr.petals}" opacity="0.8" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+    if(flr.type==='rose'){
+      // 5 back petals + 5 front petals, staggered 36°
+      for(let p=0;p<5;p++){
+        const a=p/5*360-72;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.52,sz*0.92)}" fill="${flr.p2}" opacity="0.52"/></g>`;
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.25).toFixed(1)}" fill="${flr.center}"/>`;
+      for(let p=0;p<5;p++){
+        const a=p/5*360-90;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.55,sz)}" fill="${flr.p1}" opacity="0.84"/></g>`;
+      }
+      // Stamen ring
+      for(let s=0;s<8;s++){
+        const sa2=s/8*Math.PI*2,sr=sz*0.15;
+        g+=`<circle cx="${f(cx+Math.cos(sa2)*sr)}" cy="${f(cy+Math.sin(sa2)*sr)}" r="0.85" fill="${flr.center}" opacity="0.9"/>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.14)}" fill="${flr.center}"/>`;
+    }
+    else if(flr.type==='daisy'){
+      for(let p=0;p<13;p++){
+        const a=p/13*360;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><ellipse cx="${f(cx)}" cy="${f(cy-sz*0.6)}" rx="${f(sz*0.18)}" ry="${f(sz*0.52)}" fill="${p%2===0?flr.p1:flr.p2}" opacity="0.84"/></g>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.3)}" fill="${flr.center}"/>`;
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.18)}" fill="${flr.p3}" opacity="0.5"/>`;
     }
     else if(flr.type==='forget-me-not'){
-      // Tiny 5-petal clusters (blue)
-      const count=3+Math.floor(Math.random()*4);
+      const count=3+Math.floor(Math.random()*3);
       for(let i=0;i<count;i++){
-        const ox=cx+rng(-12,12), oy=cy+rng(-12,12);
-        const ts=rng(2.5,4.5);
+        const ox=cx+rng(-14,14),oy=cy+rng(-14,14),ts=rng(3.5,5.5);
         for(let p=0;p<5;p++){
-          const a=(p/5)*Math.PI*2;
-          g+=`<circle cx="${(ox+Math.cos(a)*ts).toFixed(1)}" cy="${(oy+Math.sin(a)*ts).toFixed(1)}" r="${(ts*0.5).toFixed(1)}" fill="${flr.petals}" opacity="0.75"/>`;
+          g+=`<g transform="rotate(${p/5*360},${f(ox)},${f(oy)})"><ellipse cx="${f(ox)}" cy="${f(oy-ts*0.92)}" rx="${f(ts*0.52)}" ry="${f(ts*0.44)}" fill="${flr.p1}" opacity="0.85"/></g>`;
         }
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="1" fill="#FFE680"/>`;
+        g+=`<circle cx="${f(ox)}" cy="${f(oy)}" r="${f(ts*0.28)}" fill="#FFF176"/>`;
       }
     }
     else if(flr.type==='tulip'){
-      // Closed tulip bud shape
-      g+=`<ellipse cx="${cx}" cy="${cy-sz*0.2}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.6).toFixed(1)}" fill="${flr.petals}" opacity="0.85"/>`;
-      g+=`<ellipse cx="${cx-sz*0.15}" cy="${cy-sz*0.15}" rx="${(sz*0.3).toFixed(1)}" ry="${(sz*0.55).toFixed(1)}" fill="${flr.center}" opacity="0.6" transform="rotate(-8,${cx},${cy})"/>`;
+      const th=sz*1.25,tw=sz*0.52;
+      for(let p=0;p<3;p++){
+        const a=p/3*360-60;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy+sz*0.15)})"><path d="M${f(cx)},${f(cy+sz*0.15)} C${f(cx+tw*0.62)},${f(cy+sz*0.05)} ${f(cx+tw*0.5)},${f(cy-th*0.65)} ${f(cx)},${f(cy-th)} C${f(cx-tw*0.5)},${f(cy-th*0.65)} ${f(cx-tw*0.62)},${f(cy+sz*0.05)} ${f(cx)},${f(cy+sz*0.15)}Z" fill="${flr.p2}" opacity="0.7"/></g>`;
+      }
+      for(let p=0;p<3;p++){
+        const a=p/3*360-30;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy+sz*0.15)})"><path d="M${f(cx)},${f(cy+sz*0.18)} C${f(cx+tw*0.5)},${f(cy+sz*0.08)} ${f(cx+tw*0.42)},${f(cy-th*0.75)} ${f(cx)},${f(cy-th*1.08)} C${f(cx-tw*0.42)},${f(cy-th*0.75)} ${f(cx-tw*0.5)},${f(cy+sz*0.08)} ${f(cx)},${f(cy+sz*0.18)}Z" fill="${flr.p1}" opacity="0.88"/></g>`;
+      }
+    }
+    else if(flr.type==='peony'){
+      // 3 dense layers of overlapping petals
+      for(let layer=0;layer<3;layer++){
+        const pc=5+layer*3,pr=sz*(0.28+layer*0.22);
+        const pw=sz*(0.3+layer*0.04),ph=sz*(0.55+layer*0.06);
+        const col=[flr.p3,flr.p2,flr.p1][layer];
+        const al=(0.9-layer*0.12).toFixed(2);
+        for(let p=0;p<pc;p++){
+          const a=p/pc*360+layer*12;
+          g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy-pr+ph*0.12,pw,ph)}" fill="${col}" opacity="${al}"/></g>`;
+        }
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.2)}" fill="${flr.center}"/>`;
     }
     else if(flr.type==='wisteria'){
-      // Drooping cluster of small circles
-      const count=5+Math.floor(Math.random()*6);
+      const count=7+Math.floor(Math.random()*5);
       for(let i=0;i<count;i++){
-        const oy=cy+i*rng(2.5,4);
-        const ox=cx+rng(-4,4)*Math.sin(i*0.6);
-        const r=rng(1.8,3.5)*(1-i*0.06);
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="${Math.max(1,r).toFixed(1)}" fill="${flr.petals}" opacity="${(0.8-i*0.04).toFixed(2)}"/>`;
+        const oy=cy+i*rng(3.2,4.8);
+        const ox=cx+rng(-4.5,4.5)*Math.sin(i*0.85+1);
+        const r=Math.max(1.2,rng(2.8,4.2)*(1-i*0.042));
+        g+=`<circle cx="${f(ox)}" cy="${f(oy)}" r="${f(r)}" fill="${i<3?flr.p2:flr.p1}" opacity="${Math.min(0.9,0.92-i*0.03).toFixed(2)}"/>`;
       }
     }
-    else if(flr.type==='white-bloom'){
-      // Delicate 6-petal flower
-      for(let p=0;p<6;p++){
-        const a=(p/6)*Math.PI*2;
-        const px=cx+Math.cos(a)*sz*0.5;
-        const py=cy+Math.sin(a)*sz*0.5;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.2).toFixed(1)}" fill="${flr.petals}" opacity="0.7" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+    else if(flr.type==='poppy'){
+      for(let p=0;p<4;p++){
+        const a=p/4*360+rng(-8,8);
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.72,sz*0.98)}" fill="${p%2===0?flr.p1:flr.p2}" opacity="0.82"/></g>`;
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.15).toFixed(1)}" fill="#E8D8B0"/>`;
+      for(let s=0;s<10;s++){
+        const sa2=s/10*Math.PI*2,sl=sz*0.23;
+        g+=`<line x1="${f(cx)}" y1="${f(cy)}" x2="${f(cx+Math.cos(sa2)*sl)}" y2="${f(cy+Math.sin(sa2)*sl)}" stroke="${flr.p3}" stroke-width="0.7" opacity="0.75"/>`;
+        g+=`<circle cx="${f(cx+Math.cos(sa2)*sl*1.08)}" cy="${f(cy+Math.sin(sa2)*sl*1.08)}" r="0.85" fill="${flr.center}" opacity="0.88"/>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.22)}" fill="#1A1A1A" opacity="0.75"/>`;
     }
-    else {
-      // Generic peony / lavender - lush overlapping petals
-      const petals=6+Math.floor(Math.random()*3);
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2+rng(-0.2,0.2);
-        const dist=sz*rng(0.4,0.7);
-        const px=cx+Math.cos(a)*dist;
-        const py=cy+Math.sin(a)*dist;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*rng(0.3,0.5)).toFixed(1)}" ry="${(sz*rng(0.2,0.35)).toFixed(1)}" fill="${flr.petals}" opacity="${rng(0.6,0.85).toFixed(2)}" transform="rotate(${(a*180/Math.PI+rng(-15,15)).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+    else{
+      // cosmos fallback
+      for(let p=0;p<8;p++){
+        const a=p/8*360;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.36,sz*0.88)}" fill="${flr.p1}" opacity="0.8"/></g>`;
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.2).toFixed(1)}" fill="${flr.center}"/>`;
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.25)}" fill="${flr.center}"/>`;
     }
     g+=`</g>`;
     return g;
   }
 
-  // Lush vines from all edges, filling the full height
+  let svg=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+
   const vines=[
-    // Left edge
-    {x:-5,y:h*0.08,dir:'right',seg:8},
-    {x:-5,y:h*0.28,dir:'right',seg:9},
-    {x:-5,y:h*0.48,dir:'right',seg:8},
-    {x:-5,y:h*0.68,dir:'right',seg:9},
-    {x:-5,y:h*0.88,dir:'right',seg:8},
-    // Right edge
-    {x:w+5,y:h*0.12,dir:'left',seg:8},
-    {x:w+5,y:h*0.35,dir:'left',seg:9},
-    {x:w+5,y:h*0.55,dir:'left',seg:8},
-    {x:w+5,y:h*0.75,dir:'left',seg:9},
-    {x:w+5,y:h*0.92,dir:'left',seg:7},
-    // Bottom edge
-    {x:w*0.1,y:h+5,dir:'up',seg:9},
-    {x:w*0.35,y:h+5,dir:'up',seg:8},
-    {x:w*0.6,y:h+5,dir:'up',seg:8},
-    {x:w*0.85,y:h+5,dir:'up',seg:9},
-    // Top edge
-    {x:w*0.2,y:-5,dir:'down',seg:7},
-    {x:w*0.7,y:-5,dir:'down',seg:7},
+    {x:-5,y:h*0.08,dir:'right',seg:9},{x:-5,y:h*0.3,dir:'right',seg:10},
+    {x:-5,y:h*0.52,dir:'right',seg:9},{x:-5,y:h*0.73,dir:'right',seg:9},
+    {x:-5,y:h*0.92,dir:'right',seg:8},
+    {x:w+5,y:h*0.12,dir:'left',seg:9},{x:w+5,y:h*0.34,dir:'left',seg:10},
+    {x:w+5,y:h*0.56,dir:'left',seg:9},{x:w+5,y:h*0.76,dir:'left',seg:9},
+    {x:w+5,y:h*0.94,dir:'left',seg:8},
+    {x:w*0.1,y:h+5,dir:'up',seg:10},{x:w*0.35,y:h+5,dir:'up',seg:9},
+    {x:w*0.62,y:h+5,dir:'up',seg:9},{x:w*0.86,y:h+5,dir:'up',seg:10},
+    {x:w*0.18,y:-5,dir:'down',seg:8},{x:w*0.72,y:-5,dir:'down',seg:8},
   ];
 
   vines.forEach((v,vi)=>{
     const vine=makeVinePath(v.x,v.y,v.dir,v.seg);
-    const baseDelay=vi*0.15;
-    const stemColor=pick(greens);
+    const bd=vi*0.13;
+    const sc=pick(greens),dk=pick(darkG);
+    const dur=rng(1.6,2.5).toFixed(1);
 
-    // Main stem
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${stemColor}" stroke-width="2.2" opacity="0.5" style="--len:${vine.len};--dur:${rng(1.4,2.2).toFixed(1)}s;--d:${baseDelay.toFixed(2)}s"/>`;
+    // Triple-stroke for depth: shadow → main → highlight
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(6,8).toFixed(1)}" opacity="0.22" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(4,6).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(1.2,2.2).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
 
-    // Branch offshoots
+    // Branches
     vine.pts.forEach((pt,pi)=>{
-      if(pi<2||Math.random()>0.35)return;
-      const bDir=Math.random()>0.5?'right':'left';
-      const branch=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*3));
-      const bDelay=baseDelay+pi*0.12+0.3;
-      svg+=`<path class="v-stem" d="${branch.d}" stroke="${pick(greens)}" stroke-width="1.4" opacity="0.35" style="--len:${branch.len};--dur:${rng(1,1.6).toFixed(1)}s;--d:${bDelay.toFixed(2)}s"/>`;
+      if(pi<2||Math.random()>0.42)return;
+      const bDir=['right','left','up','down'].filter(d=>d!==v.dir)[Math.floor(Math.random()*3)];
+      const br=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*4));
+      const bbd=bd+pi*0.1+0.22;
+      const bdur=rng(0.9,1.7).toFixed(1);
+      const bc=pick(greens),bdk=pick(darkG);
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(3.5,5).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(2.5,4).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
 
-      // Sub-branch leaves
-      branch.pts.forEach((bp,bi)=>{
+      br.pts.forEach((bp,bi)=>{
         if(bi===0)return;
-        const lSize=rng(6,12);
-        const lDelay=bDelay+bi*0.12+0.2;
-        svg+=`${leafPath(bp.x,bp.y,lSize,rng(0,360).toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
+        svg+=makeLeaf(bp.x,bp.y,rng(7,14),rng(0,360),bbd+bi*0.1+0.15);
       });
+      // Tendril at branch tip
+      if(Math.random()>0.45){
+        const tip=br.pts[br.pts.length-1];
+        svg+=makeTendril(tip.x,tip.y,bbd+br.pts.length*0.1+0.2);
+      }
     });
 
     // Leaves along main stem
     vine.pts.forEach((pt,pi)=>{
       if(pi===0)return;
-      const lDelay=baseDelay+pi*0.13+0.3;
-      const lSize=rng(8,16);
-      const rot=rng(0,360);
-      svg+=`${leafPath(pt.x,pt.y,lSize,rot.toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
-      // Paired leaf
-      if(Math.random()>0.4){
-        const s2=lSize*0.7;
-        svg+=`${leafPath(pt.x+rng(-6,6),pt.y+rng(-6,6),s2,(rot+rng(30,60)).toFixed(0))} style="--d:${(lDelay+0.1).toFixed(2)}s"/>`;
+      const ld=bd+pi*0.11+0.22;
+      svg+=makeLeaf(pt.x,pt.y,rng(11,22),rng(0,360),ld);
+      if(Math.random()>0.38)
+        svg+=makeLeaf(pt.x+rng(-8,8),pt.y+rng(-8,8),rng(8,15),rng(0,360),ld+0.1);
+    });
+
+    // Flowers and buds
+    vine.pts.forEach((pt,pi)=>{
+      if(pi<2)return;
+      const fd=bd+pi*0.14+0.48;
+      if(Math.random()<0.6)
+        svg+=makeFlower(pt.x+rng(-7,7),pt.y+rng(-7,7),fd,pick(flowerPalettes));
+      if(Math.random()<0.45){
+        const flr=pick(flowerPalettes);
+        const bx=pt.x+rng(-10,10),by=pt.y+rng(-10,10),bs=rng(3,5.5);
+        svg+=`<g class="v-bud" style="--d:${(fd+0.2).toFixed(2)}s;--sa:2deg;--sd:${rng(4,8).toFixed(1)}s"><ellipse cx="${f(bx)}" cy="${f(by)}" rx="${f(bs*0.58)}" ry="${f(bs)}" fill="${flr.p2}" opacity="0.8"/><ellipse cx="${f(bx)}" cy="${f(by+bs*0.22)}" rx="${f(bs*0.38)}" ry="${f(bs*0.58)}" fill="${flr.p1}" opacity="0.5"/></g>`;
       }
     });
 
-    // Flowers and buds along the vine
-    vine.pts.forEach((pt,pi)=>{
-      if(pi<2)return;
-      const fDelay=baseDelay+pi*0.15+0.6;
-      if(Math.random()<0.55){
-        // Flower
-        const flr=pick(flowerPalettes);
-        svg+=makeFlower(pt.x+rng(-5,5),pt.y+rng(-5,5),fDelay,flr);
-      }
-      if(Math.random()<0.4){
-        // Small bud
-        const budColor=pick(flowerPalettes).petals;
-        const bx=pt.x+rng(-8,8),by=pt.y+rng(-8,8);
-        svg+=`<g class="v-bud" style="--d:${(fDelay+0.2).toFixed(2)}s"><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rng(2,4).toFixed(1)}" fill="${budColor}" opacity="0.6"/></g>`;
-      }
-    });
+    // Tendril at main vine tip
+    if(Math.random()>0.38){
+      const tip=vine.pts[vine.pts.length-1];
+      svg+=makeTendril(tip.x,tip.y,bd+vine.pts.length*0.13+0.3);
+    }
   });
 
   svg+=`</svg>`;
