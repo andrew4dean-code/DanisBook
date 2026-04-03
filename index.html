@@ -81,8 +81,9 @@ body{
   background:var(--bg);
   color:var(--text);
   font-family:var(--font-body);
-  padding-bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
   padding-top:var(--header-h);
+  overflow:hidden;
+  height:100dvh;
 }
 
 /* ========== HEADER ========== */
@@ -138,7 +139,7 @@ body{
 }
 
 /* ========== TAB PANELS ========== */
-.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease}
+.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease;height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - env(safe-area-inset-bottom, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box}
 .tab-panel.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -481,7 +482,7 @@ body{
 /* ========== SETTINGS PAGE ========== */
 .settings-page{
   display:flex;flex-direction:column;align-items:center;
-  padding:24px 0 40px;min-height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - 80px);
+  padding:24px 0 40px;min-height:100%;
 }
 .settings-header{
   text-align:center;margin-bottom:32px;
