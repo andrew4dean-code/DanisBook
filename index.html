@@ -557,6 +557,7 @@ body{
   font-size:14px;font-weight:500;color:var(--text-muted);
   letter-spacing:0.03em;
 }
+.version-num{color:var(--accent);font-weight:700;}
 .settings-section{
   width:100%;margin-bottom:24px;
 }
@@ -582,6 +583,18 @@ body{
 }
 .settings-love-note .settings-love-sign{
   margin-top:8px;color:var(--accent);font-size:15px;
+}
+
+/* ========== UPDATE GLOW BUTTON ========== */
+@keyframes updateGlow{
+  0%,100%{box-shadow:0 0 8px rgba(234,115,30,0.5),0 0 0 rgba(234,115,30,0);}
+  50%{box-shadow:0 0 22px rgba(234,115,30,0.9),0 0 40px rgba(234,115,30,0.3);}
+}
+.btn-update-pending{
+  background:#EA731E !important;
+  color:#fff !important;
+  border-color:#EA731E !important;
+  animation:updateGlow 1.8s ease-in-out infinite;
 }
 
 /* ========== DESKTOP ADJUSTMENTS ========== */
@@ -745,7 +758,26 @@ body{
         </svg>
       </div>
       <h1 class="settings-title">Dani's Book</h1>
-      <span class="settings-version">Version <span style="color: red;">1</span><span style="color: gold;">.</span><span style="color: red;">1</span></span>
+      <span class="settings-version">Version <span class="version-num">1.5</span></span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Cloud Backup</div>
+      <div class="api-key-section">
+        <div class="api-key-header">
+          <span class="api-key-title">Your Sync Code</span>
+          <span class="api-key-status" id="syncStatus">Connecting…</span>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="text" class="form-input" id="syncCodeDisplay" readonly placeholder="Generating…" style="font-family:monospace;letter-spacing:0.08em">
+          <button class="btn btn-sm btn-secondary" id="copySyncBtn">Copy</button>
+        </div>
+        <div class="api-key-help">Write this code down or screenshot it. If you ever clear your browser or switch devices, enter it below to restore all your recipes instantly.</div>
+        <div style="margin-top:10px">
+          <input type="text" class="form-input" id="restoreCodeInput" placeholder="Enter a sync code to restore…" style="font-family:monospace;letter-spacing:0.08em;text-transform:uppercase">
+          <button class="btn btn-sm btn-primary btn-block" style="margin-top:8px" id="restoreBtn">Restore My Recipes</button>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -773,21 +805,21 @@ body{
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">What's New in 1.1</div>
+      <div class="settings-section-title">What's New</div>
       <div class="settings-about">
-        <p>• Icon change</p>
-        <p style="margin-top:12px;font-weight:600;color:var(--text)">April 3rd</p>
-        <p>• Fixed bottom tab bar jumping up when scrolling in Settings</p>
-        <p>• Friendlier error messages when the AI can't read a photo — now says "couldn't figure that one out, try a clearer photo" instead of a raw error</p>
-        <p>• Scan buttons are now protected from vine animations covering them</p>
-        <p>• Vine animation during scanning now grows and retracts in sync with the actual scan time</p>
-        <p>• Improved vine visuals: thicker stems with depth shading, detailed flower types (rose, peony, daisy, poppy, tulip, wisteria &amp; more), leaf veins, spiral tendrils, and natural continuous sway</p>
+        <p style="font-weight:600;color:var(--text)">Version 1.5 — April 2026</p>
+        <p>• Fresh look and feel — warmer colors and smoother touches throughout the app</p>
+        <p>• Your recipes now sync safely to the cloud so they're always backed up</p>
+        <p>• New Sync Code in Settings — use it to restore your recipes on any device or after clearing your browser</p>
+        <p>• The Refresh button now glows when an update is ready</p>
+        <p style="margin-top:14px;font-weight:600;color:var(--text-muted)">Version 1.1 — April 3rd</p>
+        <p>• New app icon, tab bar fix, friendlier scan error messages, and vine animation polish</p>
       </div>
     </div>
 
     <div class="settings-section">
       <div class="settings-section-title">Updates</div>
-      <button class="btn btn-secondary btn-block" onclick="window.location.reload(true)">Refresh App</button>
+      <button class="btn btn-secondary btn-block" id="refreshBtn" onclick="window.location.reload(true)">Refresh App</button>
     </div>
 
     <div class="settings-love-note">
@@ -1766,12 +1798,147 @@ function withdrawVines(callback){
   },700);
 }
 
+// ========== VERSION CHECK ==========
+const APP_VERSION = '1.5';
+async function checkForUpdate() {
+  try {
+    const r = await fetch('/api/version');
+    const {version} = await r.json();
+    if (version !== APP_VERSION) {
+      const btn = document.getElementById('refreshBtn');
+      if (btn) {
+        btn.textContent = 'Update Available — Tap to Refresh';
+        btn.classList.add('btn-update-pending');
+      }
+    }
+  } catch(e) {}
+}
+
+// ========== CLOUD SYNC ==========
+const SYNC_ENDPOINT = '/api/sync';
+
+function getSyncCode() {
+  let code = loadData('rb_sync_code', null);
+  if (!code) {
+    // Generate: 8 uppercase hex characters
+    code = (Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2))
+             .toUpperCase().replace(/[^A-F0-9]/g,'').slice(0,8);
+    saveData('rb_sync_code', code);
+  }
+  return code;
+}
+
+async function syncToServer(silent) {
+  const code = getSyncCode();
+  const payload = { recipes, grocery, updatedAt: Date.now() };
+  try {
+    await fetch(`${SYNC_ENDPOINT}/${code}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ data: payload })
+    });
+    if (!silent) setSyncStatus('Synced ✓', true);
+  } catch(e) {
+    if (!silent) setSyncStatus('Saved locally', null);
+  }
+}
+
+async function syncFromServer() {
+  const code = getSyncCode();
+  setSyncStatus('Syncing…', null);
+  try {
+    const r = await fetch(`${SYNC_ENDPOINT}/${code}`);
+    const { data } = await r.json();
+    if (data && Array.isArray(data.recipes) && data.recipes.length > 0) {
+      // Server has data — use it as the source of truth
+      recipes = data.recipes;
+      grocery = data.grocery || [];
+      saveData('rb_recipes', recipes);
+      saveData('rb_grocery', grocery);
+      renderRecipes();
+      renderGrocery();
+    } else {
+      // No server record yet — push local data up to create one
+      await syncToServer(true);
+    }
+    setSyncStatus('Synced ✓', true);
+  } catch(e) {
+    setSyncStatus('Saved locally', null);
+  }
+}
+
+function setSyncStatus(msg, ok) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--error)' : 'var(--text-muted)';
+}
+
+function initSyncUI() {
+  const code = getSyncCode();
+  const display = document.getElementById('syncCodeDisplay');
+  if (display) display.value = code;
+
+  document.getElementById('copySyncBtn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(code).then(() => toast('Sync code copied!')).catch(() => {
+      // Fallback for older browsers
+      display.select();
+      document.execCommand('copy');
+      toast('Sync code copied!');
+    });
+  });
+
+  document.getElementById('restoreBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('restoreCodeInput');
+    const entered = (input?.value || '').trim().toUpperCase();
+    if (!entered) { toast('Please enter a sync code first.'); return; }
+    try {
+      setSyncStatus('Restoring…', null);
+      const r = await fetch(`${SYNC_ENDPOINT}/${entered}`);
+      const { data } = await r.json();
+      if (data && Array.isArray(data.recipes) && data.recipes.length > 0) {
+        recipes = data.recipes;
+        grocery = data.grocery || [];
+        saveData('rb_recipes', recipes);
+        saveData('rb_grocery', grocery);
+        saveData('rb_sync_code', entered);
+        if (display) display.value = entered;
+        renderRecipes();
+        renderGrocery();
+        setSyncStatus('Synced ✓', true);
+        toast('Recipes restored! ✓');
+      } else {
+        setSyncStatus('Saved locally', null);
+        toast('No recipes found for that code. Double-check it and try again.');
+      }
+    } catch(e) {
+      setSyncStatus('Saved locally', null);
+      toast('Restore failed — check your connection and try again.');
+    }
+  });
+}
+
+// Patch saveData so writes to recipes/grocery also push to server
+(function(){
+  const _orig = saveData;
+  saveData = function(key, val) {
+    _orig(key, val);
+    if (key === 'rb_recipes' || key === 'rb_grocery') {
+      syncToServer(true);
+    }
+  };
+})();
+
 // ========== INIT ==========
 renderRecipes();
 renderGrocery();
 lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
 // FAB entrance on load
 setTimeout(()=>{const fab=$('.fab');if(fab){fab.classList.add('bounce-in')}},80);
+// Cloud sync + update check
+initSyncUI();
+syncFromServer();
+checkForUpdate();
 </script>
 </body>
 </html>

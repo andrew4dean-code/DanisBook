@@ -1,48 +1,83 @@
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
 const path = require('path');
+const { Pool } = require('pg');
 
+const app = express();
 const PORT = process.env.PORT || 8080;
-const HOST = '0.0.0.0';
 
-const mimeTypes = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.json': 'application/json',
-};
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
 
-const server = http.createServer((req, res) => {
-  let urlPath = req.url.split('?')[0];
-  if (urlPath === '/') urlPath = '/index.html';
-  
-  const filePath = path.join(__dirname, urlPath);
-  const ext = path.extname(filePath);
-  const contentType = mimeTypes[ext] || 'application/octet-stream';
+// ── PostgreSQL ──────────────────────────────────────────────────────────────
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    })
+  : null;
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      // Fallback to index.html for SPA routing
-      fs.readFile(path.join(__dirname, 'index.html'), (err2, data2) => {
-        if (err2) {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('Not found');
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(data2);
-      });
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(data);
-  });
+async function initDB() {
+  if (!pool) {
+    console.log('No DATABASE_URL — running without cloud sync (local only)');
+    return;
+  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_data (
+      code        TEXT PRIMARY KEY,
+      data        JSONB NOT NULL,
+      updated_at  TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  console.log('Database ready.');
+}
+initDB().catch(err => console.error('DB init error:', err.message));
+
+// ── API: Version ─────────────────────────────────────────────────────────────
+// Bump this string on every deploy — clients compare against APP_VERSION in JS
+app.get('/api/version', (req, res) => {
+  res.json({ version: '1.5' });
 });
 
-server.listen(PORT, HOST, () => {
-  console.log('Server running on ' + HOST + ':' + PORT);
+// ── API: Sync — fetch user data ───────────────────────────────────────────────
+app.get('/api/sync/:code', async (req, res) => {
+  if (!pool) return res.json({ data: null });
+  try {
+    const result = await pool.query(
+      'SELECT data FROM user_data WHERE code = $1',
+      [req.params.code]
+    );
+    res.json({ data: result.rows[0]?.data || null });
+  } catch (e) {
+    console.error('Sync GET error:', e.message);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// ── API: Sync — save user data ────────────────────────────────────────────────
+app.post('/api/sync/:code', async (req, res) => {
+  if (!pool) return res.json({ ok: true });
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'no data' });
+  try {
+    await pool.query(
+      `INSERT INTO user_data (code, data, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (code)
+       DO UPDATE SET data = $2, updated_at = NOW()`,
+      [req.params.code, data]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Sync POST error:', e.message);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// ── SPA fallback ──────────────────────────────────────────────────────────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
