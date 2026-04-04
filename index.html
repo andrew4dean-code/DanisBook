@@ -879,7 +879,7 @@ body{
 
     <div class="settings-section">
       <div class="settings-section-title">Updates</div>
-      <button class="btn btn-secondary btn-block" id="refreshBtn" onclick="window.location.reload(true)">Refresh App</button>
+      <button class="btn btn-secondary btn-block" id="refreshBtn" onclick="window.location.replace(window.location.pathname+'?v='+Date.now())">Refresh App</button>
     </div>
 
     <div class="settings-love-note">
@@ -2154,7 +2154,7 @@ function withdrawVines(callback){
 }
 
 // ========== VERSION CHECK ==========
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.7';
 async function checkForUpdate() {
   try {
     const r = await fetch('/api/version');

@@ -224,8 +224,9 @@ app.post('/api/instagram-video', async (req, res) => {
   }
 });
 
-// ── SPA fallback ──────────────────────────────────────────────────────────────
+// ── SPA fallback — no-cache so browsers always fetch fresh HTML ───────────────
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
