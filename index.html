@@ -278,6 +278,9 @@ body{
 .form-textarea{min-height:100px;resize:vertical}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-hint{font-size:12px;color:var(--text-faint);margin-top:3px}
+.instagram-url-row{display:flex;gap:8px;align-items:stretch}
+.instagram-url-row .form-input{flex:1;min-width:0}
+.btn-paste{flex-shrink:0;padding:0 14px;height:auto;font-size:13px;min-height:44px}
 
 /* ========== BUTTONS ========== */
 .btn{
@@ -750,7 +753,10 @@ body{
     </div>
     <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
     <div id="instagramInputSection" style="display:none">
-      <input type="url" id="instagramUrl" class="form-input" placeholder="https://www.instagram.com/p/...">
+      <div class="instagram-url-row">
+        <input type="url" id="instagramUrl" class="form-input" placeholder="https://www.instagram.com/p/...">
+        <button type="button" class="btn btn-secondary btn-paste" id="pasteUrlBtn"><i data-lucide="clipboard-paste"></i> Paste</button>
+      </div>
       <div class="scan-section-desc" style="margin-top:6px;margin-bottom:16px">Paste a public post link — Gemini reads the caption.</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <div style="flex:1;height:1px;background:var(--border)"></div>
@@ -1415,6 +1421,13 @@ function updateInstagramBtn(){
   $('#scanBtn').disabled=!(hasUrl||hasVideo);
 }
 $('#instagramUrl').addEventListener('input',()=>{if(scanMode==='instagram')updateInstagramBtn();});
+$('#pasteUrlBtn').addEventListener('click',async()=>{
+  try{
+    const text=await navigator.clipboard.readText();
+    const cleaned=normalizeInstagramUrl(text);
+    if(cleaned){$('#instagramUrl').value=cleaned;$('#instagramUrl').dispatchEvent(new Event('input'));}
+  }catch(e){console.warn('Clipboard read failed:',e.message);}
+});
 $('#videoUploadZone').addEventListener('click',()=>$('#videoInput').click());
 $('#videoInput').addEventListener('change',e=>{
   selectedVideo=e.target.files[0]||null;
@@ -1574,13 +1587,30 @@ function fileToBase64(file){
   });
 }
 
+// ========== INSTAGRAM URL NORMALIZATION ==========
+function normalizeInstagramUrl(raw){
+  // Strip zero-width spaces, non-breaking spaces, and other invisible unicode
+  let url=raw.replace(/[\u200B\u200C\u200D\uFEFF\u00A0\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g,'').trim();
+  if(!url)return '';
+  // Ensure https://
+  if(!/^https?:\/\//i.test(url))url='https://'+url;
+  url=url.replace(/^http:\/\//i,'https://');
+  // Normalize m.instagram.com and instagram.com to www.instagram.com
+  url=url.replace(/^(https:\/\/)(m\.|www\.)?instagram\.com/i,'$1www.instagram.com');
+  // Strip query params and hash
+  url=url.split('?')[0].split('#')[0];
+  // Remove trailing slashes
+  url=url.replace(/\/+$/,'');
+  return url;
+}
+
 // ========== INSTAGRAM EXTRACTION ==========
 async function deleteGeminiFile(fileName,key){
   try{await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${key}`,{method:'DELETE'});}catch(_){}
 }
 
 async function handleInstagramScan(key){
-  const url=$('#instagramUrl').value.trim();
+  const url=normalizeInstagramUrl($('#instagramUrl').value);
   const useVideo=selectedVideo!==null;
   if(!url&&!useVideo)return;
 
@@ -1673,6 +1703,7 @@ async function handleInstagramScan(key){
 
       // Step 1: Try server-side yt-dlp video extraction (handles recipe-in-video)
       $('#scanLoadingText').textContent='Fetching Instagram video...';
+      console.log('Submitting Instagram URL:',url);
       try{
         const r=await fetch('/api/instagram-video',{
           method:'POST',
@@ -1682,8 +1713,10 @@ async function handleInstagramScan(key){
         if(r.ok){
           const d=await r.json();
           if(d.recipe&&(d.recipe.name||d.recipe.ingredients?.length))parsed=d.recipe;
+        }else{
+          console.warn('instagram-video failed:',r.status,await r.text().catch(()=>''));
         }
-      }catch(_){}
+      }catch(e){console.warn('instagram-video fetch error:',e.message);}
 
       // Step 2: Fall back to url_context for caption text
       if(!parsed){
