@@ -525,6 +525,47 @@ body{
   animation:toastProgress 2.2s linear forwards}
 @keyframes toastProgress{from{width:100%}to{width:0%}}
 
+/* ========== RECIPE PHOTO UPLOAD (FORM) ========== */
+.recipe-photo-upload{
+  border:2px dashed var(--border);border-radius:var(--radius-lg);
+  overflow:hidden;cursor:pointer;transition:border-color var(--transition),background var(--transition);
+  position:relative;
+}
+.recipe-photo-upload:active{border-color:var(--accent)}
+.recipe-photo-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:24px 16px;color:var(--text-muted);
+}
+.recipe-photo-placeholder svg{width:28px;height:28px;color:var(--text-faint)}
+.recipe-photo-placeholder span{font-size:13px}
+.recipe-photo-preview-wrap{position:relative;width:100%}
+.recipe-photo-preview-wrap img{
+  width:100%;height:160px;object-fit:cover;display:block;
+}
+.recipe-photo-remove{
+  position:absolute;top:8px;right:8px;
+  width:30px;height:30px;border-radius:var(--radius-full);
+  background:rgba(0,0,0,0.55);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--transition);
+}
+.recipe-photo-remove:active{background:rgba(196,90,90,0.85)}
+.recipe-photo-remove svg{width:16px;height:16px}
+
+/* Recipe card photo banner */
+.recipe-card-banner-photo{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+
+/* Detail hero photo */
+.detail-hero-photo-wrap{
+  width:110px;height:110px;border-radius:var(--radius-full);
+  overflow:hidden;margin:0 auto 14px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.18);
+  border:3px solid var(--surface);
+}
+.detail-hero-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+
 /* ========== ENTRANCE ANIMATIONS ========== */
 @keyframes slideUpFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .recipe-card{animation:slideUpFade 0.3s ease both}
@@ -884,6 +925,22 @@ body{
           <label class="form-label">Notes (optional)</label>
           <textarea class="form-textarea" id="fNotes" rows="2" placeholder="Any tips or variations..."></textarea>
         </div>
+        <div class="form-group">
+          <label class="form-label">Recipe Photo (optional)</label>
+          <div class="recipe-photo-upload" id="recipePhotoUpload">
+            <div class="recipe-photo-placeholder" id="recipePhotoPlaceholder">
+              <i data-lucide="camera"></i>
+              <span>Tap to add a photo of your dish</span>
+            </div>
+            <div class="recipe-photo-preview-wrap" id="recipePhotoPreviewWrap" style="display:none">
+              <img id="recipePhotoPreviewImg" alt="Recipe photo">
+              <button type="button" class="recipe-photo-remove" id="recipePhotoRemoveBtn" title="Remove photo">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+          </div>
+          <input type="file" id="recipePhotoInput" accept="image/*" style="display:none">
+        </div>
         <button type="submit" class="btn btn-primary btn-block" id="formSubmitBtn">Save Recipe</button>
       </form>
     </div>
@@ -923,6 +980,7 @@ let currentTab='recipes';
 let editingId=null;
 let selectedFiles=[];
 let confirmCallback=null;
+let currentRecipePhoto=null;
 
 // Category emojis
 const catEmoji={Breakfast:'\u{1F95E}',Lunch:'\u{1F96A}',Dinner:'\u{1F372}',Dessert:'\u{1F370}',Snack:'\u{1F34E}'};
@@ -1017,8 +1075,8 @@ function renderRecipes(){
   empty.style.display='none';
   grid.innerHTML=filtered.map((r,i)=>`
     <div class="recipe-card" data-id="${r.id}" data-category="${esc(r.category)}" style="animation-delay:${Math.min(i,7)*60}ms">
-      <div class="recipe-card-banner">
-        <div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      <div class="recipe-card-banner" ${r.photo?'style="padding:0;background:none;"':''}>
+        ${r.photo?`<img class="recipe-card-banner-photo" src="${r.photo}" alt="${esc(r.name)}">`:`<div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>`}
       </div>
       <div class="recipe-card-body">
         <div class="recipe-card-name">${esc(r.name)}</div>
@@ -1056,7 +1114,7 @@ function openDetail(id){
 
   let html=`
     <div class="detail-hero" data-category="${esc(r.category)}">
-      <div class="detail-hero-emoji-wrap">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      ${r.photo?`<div class="detail-hero-photo-wrap"><img src="${r.photo}" alt="${esc(r.name)}"></div>`:`<div class="detail-hero-emoji-wrap">${catEmoji[r.category]||'\u{1F37D}'}</div>`}
       <div class="detail-hero-name">${esc(r.name)}</div>
       <div class="detail-hero-meta">
         <span class="detail-badge">${esc(r.category)}</span>
@@ -1159,6 +1217,7 @@ window.editRecipe=function(id){
     $('#fInstructions').value=(r.instructions||[]).join('\n');
     $('#fNotes').value=r.notes||'';
     $('#formSubmitBtn').textContent='Update Recipe';
+    if(r.photo){setRecipePhotoPreview(r.photo)}else{clearRecipePhoto()}
     $('#formModal').classList.add('open');
   },350);
 };
@@ -1179,6 +1238,7 @@ $('#addRecipeBtn').addEventListener('click',()=>{
   $('#formTitle').textContent='Add Recipe';
   $('#recipeForm').reset();
   $('#formSubmitBtn').textContent='Save Recipe';
+  clearRecipePhoto();
   $('#formModal').classList.add('open');
 });
 $('#formClose').addEventListener('click',()=>$('#formModal').classList.remove('open'));
@@ -1194,7 +1254,8 @@ $('#recipeForm').addEventListener('submit',e=>{
     servings:$('#fServings').value.trim(),
     ingredients:$('#fIngredients').value.split('\n').map(s=>s.trim()).filter(Boolean),
     instructions:$('#fInstructions').value.split('\n').map(s=>s.trim()).filter(Boolean),
-    notes:$('#fNotes').value.trim()
+    notes:$('#fNotes').value.trim(),
+    photo:currentRecipePhoto||undefined
   };
   if(!data.name)return;
   if(editingId){
@@ -1208,6 +1269,65 @@ $('#recipeForm').addEventListener('submit',e=>{
   $('#formModal').classList.remove('open');
   toast(editingId?'Recipe updated':'Recipe saved');
   editingId=null;
+  clearRecipePhoto();
+});
+
+// ========== RECIPE PHOTO ==========
+function compressImage(file){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxDim=600;
+        let w=img.width,h=img.height;
+        if(w>maxDim||h>maxDim){
+          if(w>h){h=Math.round(h*maxDim/w);w=maxDim}
+          else{w=Math.round(w*maxDim/h);h=maxDim}
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.72));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function setRecipePhotoPreview(dataUrl){
+  currentRecipePhoto=dataUrl;
+  $('#recipePhotoPreviewImg').src=dataUrl;
+  $('#recipePhotoPlaceholder').style.display='none';
+  $('#recipePhotoPreviewWrap').style.display='block';
+  lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+}
+
+function clearRecipePhoto(){
+  currentRecipePhoto=null;
+  $('#recipePhotoInput').value='';
+  $('#recipePhotoPreviewImg').src='';
+  $('#recipePhotoPreviewWrap').style.display='none';
+  $('#recipePhotoPlaceholder').style.display='flex';
+  lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+}
+
+$('#recipePhotoUpload').addEventListener('click',e=>{
+  if(e.target.closest('#recipePhotoRemoveBtn'))return;
+  $('#recipePhotoInput').click();
+});
+
+$('#recipePhotoInput').addEventListener('change',async e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const dataUrl=await compressImage(file);
+  setRecipePhotoPreview(dataUrl);
+});
+
+$('#recipePhotoRemoveBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  clearRecipePhoto();
 });
 
 // ========== SCAN ==========
