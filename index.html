@@ -1599,11 +1599,19 @@ async function handleInstagramScan(key){
   const friendly=m=>{const e=new Error(m);e.friendly=true;throw e;};
   let uploadedFileName=null;
 
+  function parseRecipeText(text,fallbackMsg){
+    if(!text)friendly(fallbackMsg);
+    const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    let p;try{p=JSON.parse(cleaned);}catch(_){friendly(fallbackMsg);}
+    if(!p?.name&&!p?.ingredients?.length)friendly(fallbackMsg);
+    return p;
+  }
+
   try{
-    let data;
+    let parsed=null;
 
     if(useVideo){
-      // ---- VIDEO PATH: Gemini File API ----
+      // ---- CLIENT-SIDE VIDEO UPLOAD PATH ----
       $('#scanLoadingText').textContent='Uploading video...';
       const separator='gemini_boundary_'+Date.now();
       const metaJson=JSON.stringify({file:{display_name:selectedVideo.name}});
@@ -1622,7 +1630,6 @@ async function handleInstagramScan(key){
       const fileUri=uploadData.file?.uri;
       if(!uploadedFileName||!fileUri)throw new Error('File upload response missing file info.');
 
-      // Poll until ACTIVE
       $('#scanLoadingText').textContent='Processing video...';
       for(let i=0;i<30;i++){
         await new Promise(r=>setTimeout(r,3000));
@@ -1633,11 +1640,11 @@ async function handleInstagramScan(key){
         if(pollData.state==='FAILED')throw new Error('Video processing failed. Try a shorter clip or screenshot the recipe instead.');
       }
 
-      // Generate content from video
       $('#scanLoadingText').textContent='Extracting recipe from video...';
       const videoPrompt=`Watch this cooking video and extract the complete recipe. Look for: ingredient names and measurements shown on screen or spoken aloud, step-by-step instructions, cook times, serving sizes, and the dish name. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}`;
-      const models=['gemini-2.5-flash','gemini-2.0-flash'];
-      for(const model of models){
+      const videoModels=['gemini-2.5-flash','gemini-2.0-flash'];
+      let videoData;
+      for(const model of videoModels){
         let success=false;
         for(let attempt=0;attempt<2;attempt++){
           const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
@@ -1647,49 +1654,69 @@ async function handleInstagramScan(key){
           if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Extracting recipe from video...';continue;}
           if(resp.status===429)break;
           if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
-          data=await resp.json();success=true;break;
+          videoData=await resp.json();success=true;break;
         }
         if(success)break;
         await new Promise(r=>setTimeout(r,500));
       }
+      if(!videoData)friendly('All models are rate limited. Please try again in a few minutes.');
+      parsed=parseRecipeText(videoData?.candidates?.[0]?.content?.parts?.[0]?.text||'',
+        "Couldn't find a recipe in this video.");
+      deleteGeminiFile(uploadedFileName,key);
+      uploadedFileName=null;
 
     }else{
-      // ---- URL PATH: url_context tool ----
-      $('#scanLoadingText').textContent='Reading Instagram post...';
-      const urlPrompt=`Fetch this Instagram post URL and extract any recipe from the caption text. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}\nURL: ${url}`;
-      const models=['gemini-2.5-flash','gemini-2.0-flash'];
-      for(const model of models){
-        let success=false;
-        for(let attempt=0;attempt<2;attempt++){
-          const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
-            method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({tools:[{url_context:{}}],contents:[{parts:[{text:urlPrompt}]}]})
-          });
-          if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Reading Instagram post...';continue;}
-          if(resp.status===429)break;
-          if(resp.status===403){const err=await resp.json().catch(()=>({}));const msg=err.error?.message||'';if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it in Settings.');throw new Error(msg||`Permission denied (${resp.status})`);}
-          if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
-          data=await resp.json();success=true;break;
+      // ---- URL PATH ----
+
+      // Step 1: Try server-side yt-dlp video extraction (handles recipe-in-video)
+      $('#scanLoadingText').textContent='Fetching Instagram video...';
+      try{
+        const r=await fetch('/api/instagram-video',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({url,apiKey:key})
+        });
+        if(r.ok){
+          const d=await r.json();
+          if(d.recipe&&(d.recipe.name||d.recipe.ingredients?.length))parsed=d.recipe;
         }
-        if(success)break;
-        await new Promise(r=>setTimeout(r,500));
+      }catch(_){}
+
+      // Step 2: Fall back to url_context for caption text
+      if(!parsed){
+        $('#scanLoadingText').textContent='Reading Instagram caption...';
+        const urlPrompt=`Fetch this Instagram post URL and extract any recipe from the caption text. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}\nURL: ${url}`;
+        const urlModels=['gemini-2.5-flash','gemini-2.0-flash'];
+        let captionData;
+        for(const model of urlModels){
+          let success=false;
+          for(let attempt=0;attempt<2;attempt++){
+            const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({tools:[{url_context:{}}],contents:[{parts:[{text:urlPrompt}]}]})
+            });
+            if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Reading Instagram caption...';continue;}
+            if(resp.status===429)break;
+            if(resp.status===403){const err=await resp.json().catch(()=>({}));const msg=err.error?.message||'';if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it in Settings.');throw new Error(msg||`Permission denied (${resp.status})`);}
+            if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
+            captionData=await resp.json();success=true;break;
+          }
+          if(success)break;
+          await new Promise(r=>setTimeout(r,500));
+        }
+        if(captionData){
+          const captionText=captionData?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+          if(captionText){
+            const cleaned=captionText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+            try{const p=JSON.parse(cleaned);if(p?.name||p?.ingredients?.length)parsed=p;}catch(_){}
+          }
+        }
       }
-    }
 
-    if(!data)friendly('All models are rate limited. Please try again in a few minutes.');
-    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    if(!text)friendly(useVideo
-      ?"Couldn't read a recipe from this video. Try a video where the ingredients are shown on screen."
-      :"Couldn't read this post — it may be private or the recipe isn't in the caption. Try screenshotting the caption and using Scan a Recipe instead."
-    );
-    const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
-    let parsed;
-    try{parsed=JSON.parse(cleaned);}catch(_){
-      friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
+      if(!parsed?.name&&!parsed?.ingredients?.length)friendly(
+        "No recipe found in this post. It may be private, or the recipe may be in the video — try downloading the Reel and uploading it instead."
+      );
     }
-    if(!parsed?.name&&!parsed?.ingredients?.length)friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
-
-    if(useVideo&&uploadedFileName)deleteGeminiFile(uploadedFileName,key);
 
     editingId=null;
     $('#formTitle').textContent='Review Instagram Recipe';
