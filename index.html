@@ -81,21 +81,23 @@ body{
   background:var(--bg);
   color:var(--text);
   font-family:var(--font-body);
-  padding-bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
   padding-top:var(--header-h);
+  overflow:hidden;
+  height:100dvh;
 }
 
 /* ========== HEADER ========== */
 .app-header{
   position:fixed;top:0;left:0;right:0;z-index:100;
   height:var(--header-h);
-  background:var(--bg);
-  border-bottom:1px solid var(--border-light);
+  background:rgba(251,248,244,0.78);
+  border-bottom:1px solid rgba(255,255,255,0.45);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
 }
+[data-theme="dark"] .app-header{background:rgba(26,23,20,0.82);border-bottom-color:rgba(255,255,255,0.06)}
 .header-left{display:flex;align-items:center;gap:10px}
 .app-logo svg{width:28px;height:28px;color:var(--accent)}
 .app-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.01em;color:var(--text)}
@@ -113,10 +115,14 @@ body{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
   height:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
   padding-bottom:env(safe-area-inset-bottom, 0px);
-  background:var(--surface);
-  border-top:1px solid var(--border-light);
+  background:rgba(255,255,255,0.82);
+  border-top:1px solid rgba(255,255,255,0.5);
+  box-shadow:0 -4px 24px rgba(61,50,41,0.08);
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
   display:flex;align-items:stretch;
 }
+[data-theme="dark"] .tab-bar{background:rgba(36,32,25,0.88);border-top-color:rgba(255,255,255,0.05);box-shadow:0 -4px 24px rgba(0,0,0,0.3)}
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   color:var(--text-faint);font-size:11px;font-weight:500;letter-spacing:0.02em;
@@ -138,7 +144,7 @@ body{
 }
 
 /* ========== TAB PANELS ========== */
-.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease}
+.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease;height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - env(safe-area-inset-bottom, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box}
 .tab-panel.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -153,16 +159,22 @@ body{
 .search-wrap input::placeholder{color:var(--text-faint)}
 .search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted)}
 .search-wrap .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-faint);width:18px;height:18px}
-.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x mandatory}
 .filter-row::-webkit-scrollbar{display:none}
 .filter-chip{
-  flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--radius-full);
-  font-size:13px;font-weight:500;border:1px solid var(--border);
+  flex-shrink:0;height:36px;padding:0 14px;border-radius:var(--radius-full);
+  font-size:13px;font-weight:500;border:1.5px solid var(--border);
   background:var(--surface);color:var(--text-muted);white-space:nowrap;
-  transition:all var(--transition);
+  transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  scroll-snap-align:start;display:inline-flex;align-items:center;gap:5px;
 }
-.filter-chip:active{transform:scale(0.96)}
-.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filter-chip:active{transform:scale(0.95)}
+.filter-chip[data-cat="All"].active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.04);box-shadow:0 2px 10px rgba(196,112,90,0.35)}
+.filter-chip[data-cat="Breakfast"].active{background:rgba(245,200,66,0.14);color:#A07000;border-color:#E8A020;transform:scale(1.04);box-shadow:0 2px 8px rgba(240,160,48,0.25)}
+.filter-chip[data-cat="Lunch"].active{background:rgba(76,175,96,0.12);color:#256B38;border-color:#4CAF60;transform:scale(1.04);box-shadow:0 2px 8px rgba(76,175,96,0.25)}
+.filter-chip[data-cat="Dinner"].active{background:rgba(196,112,90,0.12);color:var(--accent-active);border-color:var(--accent);transform:scale(1.04);box-shadow:0 2px 8px rgba(196,112,90,0.25)}
+.filter-chip[data-cat="Dessert"].active{background:rgba(232,145,180,0.12);color:#A03068;border-color:#E080AA;transform:scale(1.04);box-shadow:0 2px 8px rgba(232,145,180,0.25)}
+.filter-chip[data-cat="Snack"].active{background:rgba(80,160,188,0.12);color:#1A6898;border-color:#50A0BC;transform:scale(1.04);box-shadow:0 2px 8px rgba(80,160,188,0.25)}
 
 /* ========== RECIPE GRID ========== */
 .recipe-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -171,13 +183,27 @@ body{
 
 .recipe-card{
   background:var(--surface);border-radius:var(--radius-lg);
-  padding:16px;cursor:pointer;
+  padding:0;cursor:pointer;overflow:hidden;
   border:1px solid var(--border-light);
-  transition:transform var(--transition),box-shadow var(--transition);
+  transition:transform 0.25s ease,box-shadow 0.25s ease;
 }
 .recipe-card:active{transform:scale(0.97)}
-.recipe-card:hover{box-shadow:var(--shadow-md)}
-.recipe-card-emoji{font-size:32px;margin-bottom:8px;line-height:1}
+.recipe-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(61,50,41,0.14)}
+
+/* Category gradient banners */
+.recipe-card-banner{
+  height:80px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.recipe-card[data-category="Breakfast"] .recipe-card-banner{background:linear-gradient(135deg,#F5C842 0%,#F0A030 60%,#E87820 100%)}
+.recipe-card[data-category="Lunch"] .recipe-card-banner{background:linear-gradient(135deg,#7BC67E 0%,#4CAF60 60%,#2E8B47 100%)}
+.recipe-card[data-category="Dinner"] .recipe-card-banner{background:linear-gradient(135deg,#C4705A 0%,#A0503A 60%,#7A3520 100%)}
+.recipe-card[data-category="Dessert"] .recipe-card-banner{background:linear-gradient(135deg,#E891B4 0%,#D4608A 60%,#B84070 100%)}
+.recipe-card[data-category="Snack"] .recipe-card-banner{background:linear-gradient(135deg,#80C5D4 0%,#50A0BC 60%,#2878A0 100%)}
+.recipe-card:not([data-category]) .recipe-card-banner{background:linear-gradient(135deg,#C8BFB6 0%,#A09488 100%)}
+
+.recipe-card-emoji{font-size:38px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18))}
+.recipe-card-body{padding:12px 14px 14px}
 .recipe-card-name{font-family:var(--font-display);font-size:17px;line-height:1.25;margin-bottom:6px;color:var(--text)}
 .recipe-card-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .recipe-card-badge{
@@ -271,53 +297,70 @@ body{
 .btn-icon{gap:6px}
 .btn-icon svg{width:16px;height:16px}
 
-/* ========== RECIPE DETAIL ========== */
-.detail-top{margin-bottom:20px}
-.detail-emoji{font-size:40px;margin-bottom:8px}
-.detail-name{font-family:var(--font-display);font-size:26px;line-height:1.2;margin-bottom:8px}
-.detail-meta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}
+/* ========== RECIPE DETAIL (UPGRADED) ========== */
+#detailBody{padding:0}
+
+.detail-hero{
+  text-align:center;padding:28px 20px 20px;
+  border-bottom:1px solid var(--border-light);
+}
+.detail-hero-emoji-wrap{
+  width:90px;height:90px;border-radius:var(--radius-full);
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;line-height:1;margin:0 auto 14px;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,0.14));
+}
+.detail-hero[data-category="Breakfast"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#F5C842,#F0A030)}
+.detail-hero[data-category="Lunch"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#7BC67E,#4CAF60)}
+.detail-hero[data-category="Dinner"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#C4705A,#A0503A)}
+.detail-hero[data-category="Dessert"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#E891B4,#D4608A)}
+.detail-hero[data-category="Snack"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#80C5D4,#50A0BC)}
+.detail-hero:not([data-category]) .detail-hero-emoji-wrap{background:linear-gradient(135deg,#C8BFB6,#A09488)}
+.detail-hero-name{font-family:var(--font-display);font-size:26px;line-height:1.2;margin-bottom:10px;color:var(--text)}
+.detail-hero-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+
 .detail-badge{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:var(--accent);background:var(--accent-muted);padding:3px 10px;border-radius:var(--radius-full)}
 .detail-info{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text-muted)}
 .detail-info svg{width:15px;height:15px}
 
-.detail-section{margin-bottom:24px}
-.detail-section-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:10px;
-}
-.detail-section-title{font-family:var(--font-display);font-size:19px;color:var(--text)}
+.detail-section{padding:20px 20px 0}
+.detail-section:last-of-type{padding-bottom:4px}
+.detail-section-divider{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.detail-section-title{font-family:var(--font-display);font-size:19px;font-style:italic;color:var(--text);white-space:nowrap}
+.detail-section-line{flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
 
-.ingredient-item{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 0;border-bottom:1px solid var(--border-light);
-  font-size:14px;
+/* Ingredient chips */
+.ingredient-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.ingredient-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 10px 6px 13px;border-radius:var(--radius-full);
+  border:1px solid var(--border);background:var(--surface);
+  font-size:13px;color:var(--text);
 }
-.ingredient-item:last-child{border-bottom:none}
-.ingredient-text{flex:1;color:var(--text)}
-.ingredient-add{
-  flex-shrink:0;width:32px;height:32px;border-radius:var(--radius-full);
+.ingredient-chip-add{
+  width:20px;height:20px;border-radius:var(--radius-full);flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  color:var(--accent);transition:background var(--transition);
+  color:var(--text-faint);background:var(--surface-alt);
+  transition:all var(--transition);
 }
-.ingredient-add:active{background:var(--accent-muted)}
-.ingredient-add svg{width:16px;height:16px}
-.ingredient-add.added{color:var(--success)}
+.ingredient-chip-add:active{color:var(--accent);background:var(--accent-muted)}
+.ingredient-chip-add.added{color:var(--success);background:rgba(90,138,74,0.12)}
+.ingredient-chip-add svg{width:11px;height:11px}
 
-.step-item{display:flex;gap:12px;padding:10px 0}
-.step-num{
-  flex-shrink:0;width:26px;height:26px;border-radius:var(--radius-full);
-  background:var(--accent-muted);color:var(--accent);
-  font-size:13px;font-weight:600;
-  display:flex;align-items:center;justify-content:center;
+/* Instruction steps */
+.step-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.step-item:last-child{border-bottom:none}
+.step-num-big{
+  flex-shrink:0;font-family:var(--font-display);font-size:28px;line-height:1;
+  color:var(--accent);opacity:0.35;width:32px;text-align:center;padding-top:3px;
 }
-.step-text{font-size:14px;line-height:1.55;color:var(--text);padding-top:2px}
+.step-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:7px}
 
 .detail-notes{
   background:var(--surface-alt);border-radius:var(--radius-md);
   padding:14px 16px;font-size:14px;color:var(--text-muted);line-height:1.55;
 }
-
-.detail-actions{display:flex;gap:10px;margin-top:24px}
+.detail-actions{display:flex;gap:10px;padding:20px 20px 32px}
 
 /* ========== SCAN TAB ========== */
 .scan-mode-toggle{
@@ -374,33 +417,34 @@ body{
 .scan-loading-text{font-size:15px;color:var(--text-muted);font-style:italic;position:relative;z-index:2}
 
 /* Vine animation container */
-.vine-canvas{position:absolute;inset:-20px;overflow:hidden;pointer-events:none;z-index:1}
+.vine-canvas{position:absolute;inset:-40px;overflow:hidden;pointer-events:none;z-index:1}
 .vine-canvas svg{width:100%;height:100%}
 
-/* Stems */
-.v-stem{fill:none;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:vGrow var(--dur,2s) ease forwards;animation-delay:var(--d,0s)}
+/* Stems & tendrils */
+.v-stem,.v-tendril{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:vGrow var(--dur,2s) cubic-bezier(0.25,0.46,0.45,0.94) var(--d,0s) forwards}
 @keyframes vGrow{to{stroke-dashoffset:0}}
 
-/* Leaves */
-.v-leaf{opacity:0;transform-origin:center;animation:vLeaf 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vLeaf{from{opacity:0;transform:scale(0) rotate(-40deg)}to{opacity:0.7;transform:scale(1) rotate(0deg)}}
+/* Leaves — transform-box:fill-box lets transform-origin:center work on SVG groups */
+.v-leaf-g{opacity:0;transform-box:fill-box;transform-origin:center;animation:vLeaf 1.05s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vLeaf{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+.vine-canvas:not(.withdrawing) .v-leaf-g{animation:vLeaf 1.05s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vLeafSway var(--sd,4.5s) ease-in-out calc(var(--d,0s) + 1.05s) infinite}
+@keyframes vLeafSway{0%,100%{transform:scale(1) rotate(0deg)}35%{transform:scale(1.02) rotate(var(--sa,3deg))}70%{transform:scale(0.99) rotate(calc(var(--sa,3deg) * -0.55))}}
 
-/* Flowers / blooms */
-.v-bloom{opacity:0;transform-origin:center;animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;animation-delay:var(--d,0s)}
-@keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:0.9;transform:scale(1) rotate(0deg)}}
+/* Flowers */
+.v-bloom{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBloom 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vBloom{from{opacity:0;transform:scale(0) rotate(-20deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 1.35s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,3.5s) ease-in-out calc(var(--d,0s) + 1.35s) infinite}
+@keyframes vBloomSway{0%,100%{transform:scale(1) rotate(0deg)}30%{transform:scale(1.04) rotate(var(--sa,3deg))}65%{transform:scale(0.97) rotate(calc(var(--sa,3deg) * -0.7))}}
 
 /* Buds */
-.v-bud{opacity:0;animation:vBud 0.5s ease forwards;animation-delay:var(--d,0s)}
-@keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:0.7;transform:scale(1)}}
-
-/* Gentle sway for sustained blooms */
-@keyframes vSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(3deg)}}
-.vine-canvas:not(.withdrawing) .v-bloom{animation:vBloom 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards,vSway 3s ease-in-out infinite;animation-delay:var(--d,0s),calc(var(--d,0s) + 0.8s)}
+.v-bud{opacity:0;transform-box:fill-box;transform-origin:center;animation:vBud 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards}
+@keyframes vBud{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+.vine-canvas:not(.withdrawing) .v-bud{animation:vBud 0.9s cubic-bezier(0.34,1.56,0.64,1) var(--d,0s) forwards,vBloomSway var(--sd,5s) ease-in-out calc(var(--d,0s) + 0.9s) infinite}
 
 /* Withdraw */
-.vine-canvas.withdrawing .v-stem{animation:vShrink 0.6s ease forwards !important}
+.vine-canvas.withdrawing .v-stem,.vine-canvas.withdrawing .v-tendril{animation:vShrink 0.7s ease forwards !important}
 @keyframes vShrink{to{stroke-dashoffset:var(--len);opacity:0}}
-.vine-canvas.withdrawing .v-leaf,.vine-canvas.withdrawing .v-bloom,.vine-canvas.withdrawing .v-bud{animation:vFade 0.5s ease forwards !important}
+.vine-canvas.withdrawing .v-leaf-g,.vine-canvas.withdrawing .v-bloom,.vine-canvas.withdrawing .v-bud{animation:vFade 0.5s ease forwards !important}
 @keyframes vFade{to{opacity:0;transform:scale(0)}}
 
 .scan-error{
@@ -470,17 +514,33 @@ body{
   position:fixed;bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
   left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--text);color:var(--bg);
-  padding:10px 20px;border-radius:var(--radius-full);
-  font-size:14px;font-weight:500;
-  opacity:0;transition:all 0.3s ease;z-index:400;pointer-events:none;
-  white-space:nowrap;
+  padding:10px 20px 13px;border-radius:var(--radius-full);
+  font-size:14px;font-weight:500;overflow:hidden;
+  opacity:0;transition:opacity 0.2s ease,transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:400;pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;
+  background:rgba(255,255,255,0.38);border-radius:0 0 var(--radius-full) var(--radius-full);
+  animation:toastProgress 2.2s linear forwards}
+@keyframes toastProgress{from{width:100%}to{width:0%}}
+
+/* ========== ENTRANCE ANIMATIONS ========== */
+@keyframes slideUpFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.recipe-card{animation:slideUpFade 0.3s ease both}
+
+@keyframes slideInRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+.tab-panel.slide-in-right{animation:slideInRight 0.28s ease both}
+.tab-panel.slide-in-left{animation:slideInLeft 0.28s ease both}
+
+@keyframes fabBounce{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+.fab.bounce-in{animation:fabBounce 0.42s cubic-bezier(0.34,1.56,0.64,1) both}
 
 /* ========== SETTINGS PAGE ========== */
 .settings-page{
   display:flex;flex-direction:column;align-items:center;
-  padding:24px 0 40px;min-height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - 80px);
+  padding:24px 0 40px;min-height:100%;
 }
 .settings-header{
   text-align:center;margin-bottom:32px;
@@ -497,6 +557,7 @@ body{
   font-size:14px;font-weight:500;color:var(--text-muted);
   letter-spacing:0.03em;
 }
+.version-num{color:var(--accent);font-weight:700;}
 .settings-section{
   width:100%;margin-bottom:24px;
 }
@@ -522,6 +583,18 @@ body{
 }
 .settings-love-note .settings-love-sign{
   margin-top:8px;color:var(--accent);font-size:15px;
+}
+
+/* ========== UPDATE GLOW BUTTON ========== */
+@keyframes updateGlow{
+  0%,100%{box-shadow:0 0 8px rgba(234,115,30,0.5),0 0 0 rgba(234,115,30,0);}
+  50%{box-shadow:0 0 22px rgba(234,115,30,0.9),0 0 40px rgba(234,115,30,0.3);}
+}
+.btn-update-pending{
+  background:#EA731E !important;
+  color:#fff !important;
+  border-color:#EA731E !important;
+  animation:updateGlow 1.8s ease-in-out infinite;
 }
 
 /* ========== DESKTOP ADJUSTMENTS ========== */
@@ -559,20 +632,20 @@ body{
 
 <!-- TAB BAR -->
 <nav class="tab-bar">
-  <button class="tab-btn active" data-tab="recipes">
+  <button class="tab-btn active" data-tab="recipes" data-tab-index="0">
     <i data-lucide="book-open"></i>
     <span>Recipes</span>
   </button>
-  <button class="tab-btn" data-tab="scan">
+  <button class="tab-btn" data-tab="scan" data-tab-index="1">
     <i data-lucide="camera"></i>
     <span>Scan</span>
   </button>
-  <button class="tab-btn" data-tab="grocery">
+  <button class="tab-btn" data-tab="grocery" data-tab-index="2">
     <i data-lucide="shopping-bag"></i>
     <span>Grocery</span>
     <span class="tab-badge" id="groceryBadge" style="display:none">0</span>
   </button>
-  <button class="tab-btn" data-tab="settings">
+  <button class="tab-btn" data-tab="settings" data-tab-index="3">
     <i data-lucide="settings"></i>
     <span>Settings</span>
   </button>
@@ -585,12 +658,12 @@ body{
     <input type="text" id="recipeSearch" placeholder="Search recipes...">
   </div>
   <div class="filter-row" id="filterRow">
-    <button class="filter-chip active" data-cat="All">All</button>
-    <button class="filter-chip" data-cat="Breakfast">Breakfast</button>
-    <button class="filter-chip" data-cat="Lunch">Lunch</button>
-    <button class="filter-chip" data-cat="Dinner">Dinner</button>
-    <button class="filter-chip" data-cat="Dessert">Dessert</button>
-    <button class="filter-chip" data-cat="Snack">Snack</button>
+    <button class="filter-chip active" data-cat="All">✦ All</button>
+    <button class="filter-chip" data-cat="Breakfast">🌅 Breakfast</button>
+    <button class="filter-chip" data-cat="Lunch">🥗 Lunch</button>
+    <button class="filter-chip" data-cat="Dinner">🍝 Dinner</button>
+    <button class="filter-chip" data-cat="Dessert">🍰 Dessert</button>
+    <button class="filter-chip" data-cat="Snack">🍿 Snack</button>
   </div>
   <div class="recipe-grid" id="recipeGrid"></div>
   <div class="empty-state" id="recipesEmpty" style="display:none">
@@ -611,17 +684,19 @@ body{
 
 <!-- SCAN TAB -->
 <div class="tab-panel" id="panel-scan">
-  <!-- Mode Toggle -->
-  <div class="scan-mode-toggle">
-    <button class="scan-mode-btn active" data-mode="scan">
-      <i data-lucide="scan-line"></i> Scan a Recipe
-    </button>
-    <button class="scan-mode-btn" data-mode="identify">
-      <i data-lucide="utensils"></i> Identify a Dish
-    </button>
-  </div>
-
   <div class="scan-section" id="scanUploadSection">
+    <!-- Mode Toggle -->
+    <div class="scan-mode-toggle">
+      <button class="scan-mode-btn active" data-mode="scan">
+        <i data-lucide="scan-line"></i> Scan a Recipe
+      </button>
+      <button class="scan-mode-btn" data-mode="identify">
+        <i data-lucide="utensils"></i> Identify a Dish
+      </button>
+      <button class="scan-mode-btn" data-mode="instagram">
+        <i data-lucide="instagram"></i> Instagram
+      </button>
+    </div>
     <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
     <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
     <div class="upload-zone" id="uploadZone">
@@ -630,6 +705,22 @@ body{
       <div class="upload-zone-hint">Select one or more images from your camera roll</div>
     </div>
     <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+    <div id="instagramInputSection" style="display:none">
+      <input type="url" id="instagramUrl" class="form-input" placeholder="https://www.instagram.com/p/...">
+      <div class="scan-section-desc" style="margin-top:6px;margin-bottom:16px">Paste a public post link — Gemini reads the caption.</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:12px;color:var(--text-muted)">or upload the video</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div class="upload-zone" id="videoUploadZone">
+        <div class="upload-zone-icon"><i data-lucide="video"></i></div>
+        <div class="upload-zone-text">Tap to select a video</div>
+        <div class="upload-zone-hint">Download the Reel then upload it here</div>
+      </div>
+      <input type="file" id="videoInput" accept="video/*" style="display:none">
+      <div id="videoPreview" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted)"></div>
+    </div>
     <div class="preview-grid" id="previewGrid"></div>
     <div style="margin-top:16px">
       <button class="btn btn-primary btn-block btn-icon" id="scanBtn" disabled>
@@ -686,7 +777,26 @@ body{
         </svg>
       </div>
       <h1 class="settings-title">Dani's Book</h1>
-      <span class="settings-version">Version <span style="color: red;">1</span><span style="color: gold;">.</span><span style="color: red;">1</span></span>
+      <span class="settings-version">Version <span class="version-num">1.6</span></span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Cloud Backup</div>
+      <div class="api-key-section">
+        <div class="api-key-header">
+          <span class="api-key-title">Your Sync Code</span>
+          <span class="api-key-status" id="syncStatus">Connecting…</span>
+        </div>
+        <div class="api-key-input-wrap">
+          <input type="text" class="form-input" id="syncCodeDisplay" readonly placeholder="Generating…" style="font-family:monospace;letter-spacing:0.08em">
+          <button class="btn btn-sm btn-secondary" id="copySyncBtn">Copy</button>
+        </div>
+        <div class="api-key-help">Write this code down or screenshot it. If you ever clear your browser or switch devices, enter it below to restore all your recipes instantly.</div>
+        <div style="margin-top:10px">
+          <input type="text" class="form-input" id="restoreCodeInput" placeholder="Enter a sync code to restore…" style="font-family:monospace;letter-spacing:0.08em;text-transform:uppercase">
+          <button class="btn btn-sm btn-primary btn-block" style="margin-top:8px" id="restoreBtn">Restore My Recipes</button>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -714,15 +824,21 @@ body{
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">What's New in 1.1</div>
+      <div class="settings-section-title">What's New</div>
       <div class="settings-about">
-        <p>• Icon change</p>
+        <p style="font-weight:600;color:var(--text)">Version 1.6 — April 2026</p>
+        <p>• Fresh look and feel — warmer colors and smoother touches throughout the app</p>
+        <p>• Your recipes now sync safely to the cloud so they're always backed up</p>
+        <p>• New Sync Code in Settings — use it to restore your recipes on any device or after clearing your browser</p>
+        <p>• The Refresh button now glows when an update is ready</p>
+        <p style="margin-top:14px;font-weight:600;color:var(--text-muted)">Version 1.1 — April 3rd</p>
+        <p>• New app icon, tab bar fix, friendlier scan error messages, and vine animation polish</p>
       </div>
     </div>
 
     <div class="settings-section">
       <div class="settings-section-title">Updates</div>
-      <button class="btn btn-secondary btn-block" onclick="window.location.reload(true)">Refresh App</button>
+      <button class="btn btn-secondary btn-block" id="refreshBtn" onclick="window.location.reload(true)">Refresh App</button>
     </div>
 
     <div class="settings-love-note">
@@ -813,7 +929,7 @@ body{
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function toast(msg){const t=$('#toast');t.innerHTML=msg+'<div class="toast-progress"></div>';t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
 
 // ========== STORAGE ==========
 function loadData(key,fallback){try{const d=localStorage.getItem(key);return d?JSON.parse(d):fallback}catch(e){return fallback}}
@@ -878,15 +994,26 @@ function updateThemeIcon(theme){
 }
 
 // ========== TABS ==========
+const tabOrder=['recipes','scan','grocery','settings'];
+let currentTabIdx=0;
 $$('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    currentTab=btn.dataset.tab;
+    const newTab=btn.dataset.tab;
+    if(newTab===currentTab)return;
+    const newIdx=parseInt(btn.dataset.tabIndex,10);
+    const dir=newIdx>currentTabIdx?'right':'left';
+    currentTabIdx=newIdx;
+    currentTab=newTab;
     $$('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    $$('.tab-panel').forEach(p=>p.classList.remove('active'));
-    $(`#panel-${currentTab}`).classList.add('active');
+    $$('.tab-panel').forEach(p=>{p.classList.remove('active','slide-in-right','slide-in-left')});
+    const panel=$(`#panel-${currentTab}`);
+    panel.classList.add('active',`slide-in-${dir}`);
     if(currentTab==='grocery')renderGrocery();
-    if(currentTab==='recipes')renderRecipes();
+    if(currentTab==='recipes'){
+      renderRecipes();
+      const fab=$('.fab');fab.classList.remove('bounce-in');void fab.offsetWidth;fab.classList.add('bounce-in');
+    }
   });
 });
 
@@ -907,14 +1034,18 @@ function renderRecipes(){
     return;
   }
   empty.style.display='none';
-  grid.innerHTML=filtered.map(r=>`
-    <div class="recipe-card" data-id="${r.id}">
-      <div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
-      <div class="recipe-card-name">${esc(r.name)}</div>
-      <div class="recipe-card-meta">
-        <span class="recipe-card-badge">${esc(r.category)}</span>
-        ${r.time?`<span class="recipe-card-time"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
-        ${r.servings?`<span class="recipe-card-servings"><i data-lucide="users"></i>${esc(r.servings)}</span>`:''}
+  grid.innerHTML=filtered.map((r,i)=>`
+    <div class="recipe-card" data-id="${r.id}" data-category="${esc(r.category)}" style="animation-delay:${Math.min(i,7)*60}ms">
+      <div class="recipe-card-banner">
+        <div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      </div>
+      <div class="recipe-card-body">
+        <div class="recipe-card-name">${esc(r.name)}</div>
+        <div class="recipe-card-meta">
+          <span class="recipe-card-badge">${esc(r.category)}</span>
+          ${r.time?`<span class="recipe-card-time"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
+          ${r.servings?`<span class="recipe-card-servings"><i data-lucide="users"></i>${esc(r.servings)}</span>`:''}
+        </div>
       </div>
     </div>
   `).join('');
@@ -943,39 +1074,52 @@ function openDetail(id){
   const groceryIngredients=new Set(grocery.map(g=>g.text));
 
   let html=`
-    <div class="detail-top">
-      <div class="detail-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
-      <div class="detail-name">${esc(r.name)}</div>
-      <div class="detail-meta">
+    <div class="detail-hero" data-category="${esc(r.category)}">
+      <div class="detail-hero-emoji-wrap">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      <div class="detail-hero-name">${esc(r.name)}</div>
+      <div class="detail-hero-meta">
         <span class="detail-badge">${esc(r.category)}</span>
         ${r.time?`<span class="detail-info"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
         ${r.servings?`<span class="detail-info"><i data-lucide="users"></i>${esc(r.servings)} servings</span>`:''}
       </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-header">
+      <div class="detail-section-divider">
         <span class="detail-section-title">Ingredients</span>
+        <div class="detail-section-line"></div>
         <button class="btn btn-sm btn-ghost btn-icon" onclick="addAllIngredients('${r.id}')"><i data-lucide="plus-circle"></i> Add All</button>
       </div>
-      ${(r.ingredients||[]).map((ing,i)=>`
-        <div class="ingredient-item">
-          <span class="ingredient-text">${esc(ing)}</span>
-          <button class="ingredient-add ${groceryIngredients.has(ing)?'added':''}" onclick="addIngredient('${r.id}',${i})" title="Add to grocery list">
-            <i data-lucide="${groceryIngredients.has(ing)?'check':'plus'}"></i>
-          </button>
-        </div>
-      `).join('')}
+      <div class="ingredient-chips">
+        ${(r.ingredients||[]).map((ing,i)=>`
+          <div class="ingredient-chip">
+            <span>${esc(ing)}</span>
+            <button class="ingredient-chip-add ${groceryIngredients.has(ing)?'added':''}" onclick="addIngredient('${r.id}',${i})" title="Add to grocery">
+              <i data-lucide="${groceryIngredients.has(ing)?'check':'plus'}"></i>
+            </button>
+          </div>
+        `).join('')}
+      </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-title">Instructions</div>
+      <div class="detail-section-divider">
+        <span class="detail-section-title">Instructions</span>
+        <div class="detail-section-line"></div>
+      </div>
       ${(r.instructions||[]).map((step,i)=>`
         <div class="step-item">
-          <span class="step-num">${i+1}</span>
+          <span class="step-num-big">${i+1}</span>
           <span class="step-text">${esc(step)}</span>
         </div>
       `).join('')}
     </div>
-    ${r.notes?`<div class="detail-section"><div class="detail-section-title">Notes</div><div class="detail-notes">${esc(r.notes)}</div></div>`:''}
+    ${r.notes?`
+    <div class="detail-section">
+      <div class="detail-section-divider">
+        <span class="detail-section-title">Notes</span>
+        <div class="detail-section-line"></div>
+      </div>
+      <div class="detail-notes">${esc(r.notes)}</div>
+    </div>`:''}
     <div class="detail-actions">
       <button class="btn btn-secondary btn-icon" onclick="editRecipe('${r.id}')"><i data-lucide="pencil"></i> Edit</button>
       <button class="btn btn-danger btn-icon" onclick="deleteRecipe('${r.id}')"><i data-lucide="trash-2"></i> Delete</button>
@@ -1096,10 +1240,24 @@ $$('.scan-mode-btn').forEach(btn=>{
       $('#scanSectionTitle').textContent='Snap a Dish';
       $('#scanSectionDesc').textContent='Take a photo of any meal and we will try to figure out what it is and how to make it.';
       $('#scanBtnText').textContent='Identify Dish';
+      $('#uploadZone').style.display='block';
+      $('#instagramInputSection').style.display='none';
+      $('#scanBtn').disabled=selectedFiles.length===0;
+    }else if(scanMode==='instagram'){
+      $('#scanSectionTitle').textContent='From Instagram';
+      $('#scanSectionDesc').textContent='Extract a recipe from a post caption or a downloaded Reel.';
+      $('#scanBtnText').textContent='Get Recipe';
+      $('#uploadZone').style.display='none';
+      $('#instagramInputSection').style.display='block';
+      $('#scanError').style.display='none';
+      updateInstagramBtn();
     }else{
       $('#scanSectionTitle').textContent='Upload Recipe Photos';
       $('#scanSectionDesc').textContent='Take a photo of a recipe from a cookbook, website, or handwritten card.';
       $('#scanBtnText').textContent='Scan Recipe';
+      $('#uploadZone').style.display='block';
+      $('#instagramInputSection').style.display='none';
+      $('#scanBtn').disabled=selectedFiles.length===0;
     }
   });
 });
@@ -1127,6 +1285,26 @@ $('#photoInput').addEventListener('change',e=>{
   $('#scanBtn').disabled=selectedFiles.length===0;
 });
 
+let selectedVideo=null;
+function updateInstagramBtn(){
+  const hasUrl=$('#instagramUrl').value.trim().length>0;
+  const hasVideo=selectedVideo!==null;
+  $('#scanBtn').disabled=!(hasUrl||hasVideo);
+}
+$('#instagramUrl').addEventListener('input',()=>{if(scanMode==='instagram')updateInstagramBtn();});
+$('#videoUploadZone').addEventListener('click',()=>$('#videoInput').click());
+$('#videoInput').addEventListener('change',e=>{
+  selectedVideo=e.target.files[0]||null;
+  const preview=$('#videoPreview');
+  if(selectedVideo){
+    preview.textContent=`Selected: ${selectedVideo.name} (${(selectedVideo.size/1024/1024).toFixed(1)} MB)`;
+    preview.style.display='block';
+  }else{
+    preview.style.display='none';
+  }
+  if(scanMode==='instagram')updateInstagramBtn();
+});
+
 function renderPreviews(){
   const grid=$('#previewGrid');
   grid.innerHTML='';
@@ -1141,6 +1319,7 @@ function renderPreviews(){
 $('#scanBtn').addEventListener('click',async()=>{
   const key=loadData('rb_api_key','');
   if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key in the Settings tab first.';return}
+  if(scanMode==='instagram'){await handleInstagramScan(key);return;}
   if(selectedFiles.length===0)return;
 
   $('#scanError').style.display='none';
@@ -1223,8 +1402,12 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
     }
     if(!data)throw new Error('All models are rate limited. Please try again in a few minutes.');
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const friendly=m=>{const e=new Error(m);e.friendly=true;throw e;};
+    if(!text)friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");
     const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
-    const parsed=JSON.parse(cleaned);
+    let parsed;
+    try{parsed=JSON.parse(cleaned);}catch(_){friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");}
+    if(!parsed?.name&&!parsed?.ingredients?.length)friendly("Hmm, couldn't figure that one out — try a clearer photo or a different angle.");
 
     // Pre-fill form
     editingId=null;
@@ -1254,7 +1437,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
       $('#scanLoading').style.display='none';
       $('#scanUploadSection').style.display='block';
       $('#scanError').style.display='block';
-      $('#scanError').textContent='Scan failed: '+err.message;
+      $('#scanError').textContent=err.friendly?err.message:'Scan failed: '+err.message;
     });
   }
 });
@@ -1266,6 +1449,160 @@ function fileToBase64(file){
     reader.onerror=reject;
     reader.readAsDataURL(file);
   });
+}
+
+// ========== INSTAGRAM EXTRACTION ==========
+async function deleteGeminiFile(fileName,key){
+  try{await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${key}`,{method:'DELETE'});}catch(_){}
+}
+
+async function handleInstagramScan(key){
+  const url=$('#instagramUrl').value.trim();
+  const useVideo=selectedVideo!==null;
+  if(!url&&!useVideo)return;
+
+  $('#scanError').style.display='none';
+  $('#scanUploadSection').style.display='none';
+  $('#scanLoading').style.display='flex';
+  createVines();
+
+  const recipeJsonSchema=`{
+  "name": "recipe name",
+  "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
+  "time": "cook time like 30 min",
+  "servings": "number of servings like 4",
+  "ingredients": ["ingredient 1 with measurement", "ingredient 2"],
+  "instructions": ["step 1", "step 2"],
+  "notes": "any tips or notes, or empty string"
+}`;
+
+  const friendly=m=>{const e=new Error(m);e.friendly=true;throw e;};
+  let uploadedFileName=null;
+
+  try{
+    let data;
+
+    if(useVideo){
+      // ---- VIDEO PATH: Gemini File API ----
+      $('#scanLoadingText').textContent='Uploading video...';
+      const separator='gemini_boundary_'+Date.now();
+      const metaJson=JSON.stringify({file:{display_name:selectedVideo.name}});
+      const metaPart=`--${separator}\r\nContent-Type: application/json\r\n\r\n${metaJson}\r\n`;
+      const filePart=`--${separator}\r\nContent-Type: ${selectedVideo.type}\r\n\r\n`;
+      const closePart=`\r\n--${separator}--`;
+      const body=new Blob([metaPart,filePart,selectedVideo,closePart]);
+
+      const uploadResp=await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${key}`,
+        {method:'POST',headers:{'Content-Type':`multipart/related; boundary=${separator}`,'X-Goog-Upload-Protocol':'multipart'},body}
+      );
+      if(!uploadResp.ok){const err=await uploadResp.json().catch(()=>({}));throw new Error(err.error?.message||`Upload failed (${uploadResp.status})`);}
+      const uploadData=await uploadResp.json();
+      uploadedFileName=uploadData.file?.name;
+      const fileUri=uploadData.file?.uri;
+      if(!uploadedFileName||!fileUri)throw new Error('File upload response missing file info.');
+
+      // Poll until ACTIVE
+      $('#scanLoadingText').textContent='Processing video...';
+      for(let i=0;i<30;i++){
+        await new Promise(r=>setTimeout(r,3000));
+        const pollResp=await fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${key}`);
+        if(!pollResp.ok)break;
+        const pollData=await pollResp.json();
+        if(pollData.state==='ACTIVE')break;
+        if(pollData.state==='FAILED')throw new Error('Video processing failed. Try a shorter clip or screenshot the recipe instead.');
+      }
+
+      // Generate content from video
+      $('#scanLoadingText').textContent='Extracting recipe from video...';
+      const videoPrompt=`Watch this cooking video and extract the complete recipe. Look for: ingredient names and measurements shown on screen or spoken aloud, step-by-step instructions, cook times, serving sizes, and the dish name. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}`;
+      const models=['gemini-2.5-flash','gemini-2.0-flash'];
+      for(const model of models){
+        let success=false;
+        for(let attempt=0;attempt<2;attempt++){
+          const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({contents:[{parts:[{file_data:{mime_type:selectedVideo.type,file_uri:fileUri}},{text:videoPrompt}]}]})
+          });
+          if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Extracting recipe from video...';continue;}
+          if(resp.status===429)break;
+          if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
+          data=await resp.json();success=true;break;
+        }
+        if(success)break;
+        await new Promise(r=>setTimeout(r,500));
+      }
+
+    }else{
+      // ---- URL PATH: url_context tool ----
+      $('#scanLoadingText').textContent='Reading Instagram post...';
+      const urlPrompt=`Fetch this Instagram post URL and extract any recipe from the caption text. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}\nURL: ${url}`;
+      const models=['gemini-2.5-flash','gemini-2.0-flash'];
+      for(const model of models){
+        let success=false;
+        for(let attempt=0;attempt<2;attempt++){
+          const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({tools:[{url_context:{}}],contents:[{parts:[{text:urlPrompt}]}]})
+          });
+          if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Reading Instagram post...';continue;}
+          if(resp.status===429)break;
+          if(resp.status===403){const err=await resp.json().catch(()=>({}));const msg=err.error?.message||'';if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it in Settings.');throw new Error(msg||`Permission denied (${resp.status})`);}
+          if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
+          data=await resp.json();success=true;break;
+        }
+        if(success)break;
+        await new Promise(r=>setTimeout(r,500));
+      }
+    }
+
+    if(!data)friendly('All models are rate limited. Please try again in a few minutes.');
+    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!text)friendly(useVideo
+      ?"Couldn't read a recipe from this video. Try a video where the ingredients are shown on screen."
+      :"Couldn't read this post — it may be private or the recipe isn't in the caption. Try screenshotting the caption and using Scan a Recipe instead."
+    );
+    const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(cleaned);}catch(_){
+      friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
+    }
+    if(!parsed?.name&&!parsed?.ingredients?.length)friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
+
+    if(useVideo&&uploadedFileName)deleteGeminiFile(uploadedFileName,key);
+
+    editingId=null;
+    $('#formTitle').textContent='Review Instagram Recipe';
+    $('#fName').value=parsed.name||'';
+    $('#fCategory').value=parsed.category||'Dinner';
+    $('#fTime').value=parsed.time||'';
+    $('#fServings').value=parsed.servings||'';
+    $('#fIngredients').value=(parsed.ingredients||[]).join('\n');
+    $('#fInstructions').value=(parsed.instructions||[]).join('\n');
+    $('#fNotes').value=parsed.notes||'';
+    $('#formSubmitBtn').textContent='Save Recipe';
+
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#formModal').classList.add('open');
+      toast(useVideo?'Recipe extracted from video':'Recipe extracted from Instagram');
+    });
+    $('#instagramUrl').value='';
+    selectedVideo=null;
+    $('#videoInput').value='';
+    $('#videoPreview').style.display='none';
+    $('#scanBtn').disabled=true;
+
+  }catch(err){
+    if(useVideo&&uploadedFileName)deleteGeminiFile(uploadedFileName,key);
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#scanError').style.display='block';
+      $('#scanError').textContent=err.friendly?err.message:'Extraction failed: '+err.message;
+    });
+  }
 }
 
 // ========== GROCERY RENDERING ==========
@@ -1369,211 +1706,290 @@ $('#confirmCancel').addEventListener('click',()=>$('#confirmOverlay').classList.
 $('#confirmOk').addEventListener('click',()=>{$('#confirmOverlay').classList.remove('open');if(confirmCallback)confirmCallback()});
 
 // ========== VINE ANIMATION ==========
-let vineStartTime=0;
-const VINE_MIN_MS=4000;
 
 function createVines(){
-  vineStartTime=Date.now();
   const canvas=$('#vineCanvas');
   const w=canvas.offsetWidth||375;
   const h=canvas.offsetHeight||320;
-  let svg=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // Botanical palette inspired by the watercolor reference
-  const greens=['#3D6B3D','#4A7C3F','#5A8F4E','#2D5A2D','#6B8F5E','#3A5F28'];
+  const greens=['#2D5A2D','#3D6B3D','#4A7C3F','#3A5F28','#4D6B35','#3F6030'];
+  const darkG =['#1A3A1A','#243D24','#2E4F2E','#223818','#2F4120','#1E3520'];
+
   const flowerPalettes=[
-    {petals:'#D4829A',center:'#C46A84',type:'wild-rose'},    // soft pink
-    {petals:'#B07EC5',center:'#8B5FA0',type:'lavender'},      // lavender purple
-    {petals:'#7BA3D4',center:'#5C87BD',type:'forget-me-not'}, // cornflower blue
-    {petals:'#E8C96E',center:'#C4A43D',type:'tulip'},         // golden/orange tulip
-    {petals:'#F0E6D8',center:'#D4C8A8',type:'white-bloom'},   // white/cream
-    {petals:'#D46B8A',center:'#B84D6D',type:'peony'},         // deep pink
-    {petals:'#9B7EC4',center:'#7B5EA4',type:'wisteria'},      // purple wisteria
-    {petals:'#C4705A',center:'#A85A44',type:'terracotta'},    // terracotta
+    {p1:'#EDB0C5',p2:'#D4829A',p3:'#B85C7A',center:'#FFD54F',type:'rose'},
+    {p1:'#C9AEE0',p2:'#B07EC5',p3:'#8450A8',center:'#FFE57A',type:'peony'},
+    {p1:'#A8CCF0',p2:'#7BA3D4',p3:'#4D7DB8',center:'#FFF176',type:'forget-me-not'},
+    {p1:'#F5E07A',p2:'#E8C66A',p3:'#C4A030',center:'#6D4C41',type:'tulip'},
+    {p1:'#FFFFFF',p2:'#F0E8D8',p3:'#D4C8A8',center:'#F9C800',type:'daisy'},
+    {p1:'#F7C4D0',p2:'#E87898',p3:'#C44870',center:'#FFD700',type:'rose'},
+    {p1:'#D0B8E8',p2:'#9B7EC4',p3:'#6A4EA0',center:'#FFF59D',type:'wisteria'},
+    {p1:'#F5A080',p2:'#E06040',p3:'#B83020',center:'#1A1A1A',type:'poppy'},
   ];
 
   function rng(min,max){return min+Math.random()*(max-min)}
   function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+  function f(n){return n.toFixed(1)}
 
+  // Safe zone: center area where the loading text lives — vines steer around it
+  const szX1=w*0.27,szX2=w*0.73,szY1=h*0.42,szY2=h*0.58;
+  function inSafe(x,y,pad=0){return x>szX1-pad&&x<szX2+pad&&y>szY1-pad&&y<szY2+pad}
+
+  function petalUp(cx,cy,pw,ph){
+    return `M${f(cx)},${f(cy+ph*0.12)} C${f(cx+pw*0.65)},${f(cy+ph*0.18)} ${f(cx+pw*0.68)},${f(cy-ph*0.42)} ${f(cx)},${f(cy-ph)} C${f(cx-pw*0.68)},${f(cy-ph*0.42)} ${f(cx-pw*0.65)},${f(cy+ph*0.18)} ${f(cx)},${f(cy+ph*0.12)}Z`;
+  }
+
+  // Vine path with safe-zone steering (3× larger spread)
   function makeVinePath(sx,sy,dir,segs){
     let pts=[{x:sx,y:sy}];
     for(let i=0;i<segs;i++){
       const p=pts[pts.length-1];
-      const spread=30+Math.random()*30;
+      const spread=55+Math.random()*65;
+      const wobble=(Math.random()-0.5)*120;
       let nx,ny;
-      if(dir==='right'){nx=p.x+spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='left'){nx=p.x-spread;ny=p.y+(Math.random()-0.5)*55}
-      else if(dir==='up'){nx=p.x+(Math.random()-0.5)*50;ny=p.y-spread}
-      else{nx=p.x+(Math.random()-0.5)*50;ny=p.y+spread}
-      pts.push({x:Math.max(-15,Math.min(w+15,nx)),y:Math.max(-15,Math.min(h+15,ny))});
-    }
-    let d=`M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
-    for(let i=1;i<pts.length;i++){
-      const prev=pts[i-1],cur=pts[i];
-      const cx1=(prev.x+(cur.x-prev.x)*0.4+(Math.random()-0.5)*25).toFixed(1);
-      const cy1=(prev.y+(Math.random()-0.5)*35).toFixed(1);
-      const cx2=(cur.x-(cur.x-prev.x)*0.3+(Math.random()-0.5)*25).toFixed(1);
-      const cy2=(cur.y+(Math.random()-0.5)*35).toFixed(1);
-      d+=` C${cx1},${cy1} ${cx2},${cy2} ${cur.x.toFixed(1)},${cur.y.toFixed(1)}`;
-    }
-    return {d,pts,len:segs*55};
-  }
-
-  // Build leaf SVG path (pointed teardrop shape)
-  function leafPath(cx,cy,size,rot){
-    const s=size;
-    return `<path class="v-leaf" d="M${cx},${cy-s*0.5} Q${cx+s*0.4},${cy-s*0.1} ${cx},${cy+s*0.5} Q${cx-s*0.4},${cy-s*0.1} ${cx},${cy-s*0.5}Z" fill="${pick(greens)}" transform="rotate(${rot},${cx},${cy})"`;
-  }
-
-  // Build different flower types as SVG
-  function makeFlower(cx,cy,delay,flr){
-    let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s">`;
-    const sz=rng(6,14);
-
-    if(flr.type==='wild-rose'){
-      // 5-petal open rose like in the reference
-      const petals=5;
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2-Math.PI/2;
-        const px=cx+Math.cos(a)*sz*0.6;
-        const py=cy+Math.sin(a)*sz*0.6;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.55).toFixed(1)}" ry="${(sz*0.4).toFixed(1)}" fill="${flr.petals}" opacity="0.8" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+      if(dir==='right'){nx=p.x+spread;ny=p.y+wobble}
+      else if(dir==='left'){nx=p.x-spread;ny=p.y+wobble}
+      else if(dir==='up'){nx=p.x+wobble;ny=p.y-spread}
+      else{nx=p.x+wobble;ny=p.y+spread}
+      // Steer around the text safe zone
+      const margin=25;
+      if(inSafe(nx,ny,margin)){
+        if(dir==='right'||dir==='left'){
+          const midY=(szY1+szY2)/2;
+          ny=p.y<midY ? szY1-margin-rng(10,35) : szY2+margin+rng(10,35);
+        }else{
+          const midX=(szX1+szX2)/2;
+          nx=p.x<midX ? szX1-margin-rng(10,35) : szX2+margin+rng(10,35);
+        }
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.25).toFixed(1)}" fill="${flr.center}"/>`;
+      pts.push({x:Math.max(-45,Math.min(w+45,nx)),y:Math.max(-45,Math.min(h+45,ny))});
+    }
+    let d=`M${f(pts[0].x)},${f(pts[0].y)}`;
+    for(let i=1;i<pts.length;i++){
+      const pr=pts[i-1],cu=pts[i];
+      d+=` C${f(pr.x+(cu.x-pr.x)*0.4+(Math.random()-0.5)*50)},${f(pr.y+(Math.random()-0.5)*70)} ${f(cu.x-(cu.x-pr.x)*0.3+(Math.random()-0.5)*50)},${f(cu.y+(Math.random()-0.5)*70)} ${f(cu.x)},${f(cu.y)}`;
+    }
+    return {d,pts,len:segs*120};
+  }
+
+  // Tendril (3× bigger radius)
+  function makeTendril(x,y,delay){
+    const r=rng(30,62);
+    const dir=Math.random()>0.5?1:-1;
+    const x1=x+dir*r,y1=y-r*0.35;
+    const x2=x+dir*r*0.15,y2=y-r;
+    const x3=x-dir*r*0.75,y3=y-r*0.55;
+    const x4=x-dir*r*0.15,y4=y-r*0.55;
+    const d=`M${f(x)},${f(y)} C${f(x1)},${f(y1)} ${f(x2)},${f(y2-r*0.15)} ${f(x2)},${f(y2)} C${f(x3)},${f(y3)} ${f(x4)},${f(y4)} ${f(x+dir*r*0.18)},${f(y-r*0.72)}`;
+    const len=r*5;
+    return `<path class="v-tendril" d="${d}" stroke="${pick(greens)}" stroke-width="${rng(1,2).toFixed(1)}" style="--len:${f(len)};--dur:${rng(1.35,2.25).toFixed(1)}s;--d:${delay.toFixed(2)}s"/>`;
+  }
+
+  // Leaf — same logic, size passed in (call sites use 3× values)
+  function makeLeaf(cx,cy,size,rot,delay){
+    const s=size;
+    const grn=pick(greens);
+    const drk=pick(darkG);
+    const sa=rng(1.5,4).toFixed(1);
+    const sd=rng(3.5,7).toFixed(1);
+    const body=`M${f(cx)},${f(cy-s*0.58)} C${f(cx+s*0.53)},${f(cy-s*0.42)} ${f(cx+s*0.57)},${f(cy+s*0.1)} ${f(cx)},${f(cy+s*0.62)} C${f(cx-s*0.57)},${f(cy+s*0.1)} ${f(cx-s*0.53)},${f(cy-s*0.42)} ${f(cx)},${f(cy-s*0.58)}Z`;
+    const mid=`M${f(cx)},${f(cy-s*0.52)} Q${f(cx+s*0.04)},${f(cy+s*0.04)} ${f(cx)},${f(cy+s*0.57)}`;
+    const veins=`M${f(cx)},${f(cy-s*0.12)} Q${f(cx+s*0.3)},${f(cy-s*0.28)} ${f(cx+s*0.45)},${f(cy-s*0.19)} M${f(cx)},${f(cy+s*0.14)} Q${f(cx+s*0.33)},${f(cy+s*0.03)} ${f(cx+s*0.47)},${f(cy+s*0.13)} M${f(cx)},${f(cy-s*0.12)} Q${f(cx-s*0.3)},${f(cy-s*0.28)} ${f(cx-s*0.45)},${f(cy-s*0.19)} M${f(cx)},${f(cy+s*0.14)} Q${f(cx-s*0.33)},${f(cy+s*0.03)} ${f(cx-s*0.47)},${f(cy+s*0.13)}`;
+    return `<g class="v-leaf-g" style="--d:${delay.toFixed(2)}s;--sa:${sa}deg;--sd:${sd}s"><g transform="rotate(${rot.toFixed(0)},${f(cx)},${f(cy)})"><path d="${body}" fill="${grn}" opacity="0.9"/><path d="${mid}" stroke="${drk}" stroke-width="1.8" fill="none" opacity="0.55"/><path d="${veins}" stroke="${drk}" stroke-width="1.1" fill="none" opacity="0.32"/></g></g>`;
+  }
+
+  // Flower generator — sz now 3× larger
+  function makeFlower(cx,cy,delay,flr){
+    const sz=rng(28,58);
+    const sa=rng(2.3,5.3).toFixed(1);
+    const sd=rng(2.5,5.5).toFixed(1);
+    let g=`<g class="v-bloom" style="--d:${delay.toFixed(2)}s;--sa:${sa}deg;--sd:${sd}s">`;
+
+    if(flr.type==='rose'){
+      for(let p=0;p<5;p++){
+        const a=p/5*360-72;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.52,sz*0.92)}" fill="${flr.p2}" opacity="0.52"/></g>`;
+      }
+      for(let p=0;p<5;p++){
+        const a=p/5*360-90;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.55,sz)}" fill="${flr.p1}" opacity="0.84"/></g>`;
+      }
+      for(let s=0;s<8;s++){
+        const sa2=s/8*Math.PI*2,sr=sz*0.15;
+        g+=`<circle cx="${f(cx+Math.cos(sa2)*sr)}" cy="${f(cy+Math.sin(sa2)*sr)}" r="1.8" fill="${flr.center}" opacity="0.9"/>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.14)}" fill="${flr.center}"/>`;
+    }
+    else if(flr.type==='daisy'){
+      for(let p=0;p<13;p++){
+        const a=p/13*360;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><ellipse cx="${f(cx)}" cy="${f(cy-sz*0.6)}" rx="${f(sz*0.18)}" ry="${f(sz*0.52)}" fill="${p%2===0?flr.p1:flr.p2}" opacity="0.84"/></g>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.3)}" fill="${flr.center}"/>`;
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.18)}" fill="${flr.p3}" opacity="0.5"/>`;
     }
     else if(flr.type==='forget-me-not'){
-      // Tiny 5-petal clusters (blue)
-      const count=3+Math.floor(Math.random()*4);
+      const count=3+Math.floor(Math.random()*3);
       for(let i=0;i<count;i++){
-        const ox=cx+rng(-12,12), oy=cy+rng(-12,12);
-        const ts=rng(2.5,4.5);
+        const ox=cx+rng(-40,40),oy=cy+rng(-40,40),ts=rng(10,16);
         for(let p=0;p<5;p++){
-          const a=(p/5)*Math.PI*2;
-          g+=`<circle cx="${(ox+Math.cos(a)*ts).toFixed(1)}" cy="${(oy+Math.sin(a)*ts).toFixed(1)}" r="${(ts*0.5).toFixed(1)}" fill="${flr.petals}" opacity="0.75"/>`;
+          g+=`<g transform="rotate(${p/5*360},${f(ox)},${f(oy)})"><ellipse cx="${f(ox)}" cy="${f(oy-ts*0.92)}" rx="${f(ts*0.52)}" ry="${f(ts*0.44)}" fill="${flr.p1}" opacity="0.85"/></g>`;
         }
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="1" fill="#FFE680"/>`;
+        g+=`<circle cx="${f(ox)}" cy="${f(oy)}" r="${f(ts*0.28)}" fill="#FFF176"/>`;
       }
     }
     else if(flr.type==='tulip'){
-      // Closed tulip bud shape
-      g+=`<ellipse cx="${cx}" cy="${cy-sz*0.2}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.6).toFixed(1)}" fill="${flr.petals}" opacity="0.85"/>`;
-      g+=`<ellipse cx="${cx-sz*0.15}" cy="${cy-sz*0.15}" rx="${(sz*0.3).toFixed(1)}" ry="${(sz*0.55).toFixed(1)}" fill="${flr.center}" opacity="0.6" transform="rotate(-8,${cx},${cy})"/>`;
+      const th=sz*1.25,tw=sz*0.52;
+      for(let p=0;p<3;p++){
+        const a=p/3*360-60;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy+sz*0.15)})"><path d="M${f(cx)},${f(cy+sz*0.15)} C${f(cx+tw*0.62)},${f(cy+sz*0.05)} ${f(cx+tw*0.5)},${f(cy-th*0.65)} ${f(cx)},${f(cy-th)} C${f(cx-tw*0.5)},${f(cy-th*0.65)} ${f(cx-tw*0.62)},${f(cy+sz*0.05)} ${f(cx)},${f(cy+sz*0.15)}Z" fill="${flr.p2}" opacity="0.7"/></g>`;
+      }
+      for(let p=0;p<3;p++){
+        const a=p/3*360-30;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy+sz*0.15)})"><path d="M${f(cx)},${f(cy+sz*0.18)} C${f(cx+tw*0.5)},${f(cy+sz*0.08)} ${f(cx+tw*0.42)},${f(cy-th*0.75)} ${f(cx)},${f(cy-th*1.08)} C${f(cx-tw*0.42)},${f(cy-th*0.75)} ${f(cx-tw*0.5)},${f(cy+sz*0.08)} ${f(cx)},${f(cy+sz*0.18)}Z" fill="${flr.p1}" opacity="0.88"/></g>`;
+      }
+    }
+    else if(flr.type==='peony'){
+      for(let layer=0;layer<3;layer++){
+        const pc=5+layer*3,pr=sz*(0.28+layer*0.22);
+        const pw=sz*(0.3+layer*0.04),ph=sz*(0.55+layer*0.06);
+        const col=[flr.p3,flr.p2,flr.p1][layer];
+        const al=(0.9-layer*0.12).toFixed(2);
+        for(let p=0;p<pc;p++){
+          const a=p/pc*360+layer*12;
+          g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy-pr+ph*0.12,pw,ph)}" fill="${col}" opacity="${al}"/></g>`;
+        }
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.2)}" fill="${flr.center}"/>`;
     }
     else if(flr.type==='wisteria'){
-      // Drooping cluster of small circles
-      const count=5+Math.floor(Math.random()*6);
+      const count=7+Math.floor(Math.random()*5);
       for(let i=0;i<count;i++){
-        const oy=cy+i*rng(2.5,4);
-        const ox=cx+rng(-4,4)*Math.sin(i*0.6);
-        const r=rng(1.8,3.5)*(1-i*0.06);
-        g+=`<circle cx="${ox.toFixed(1)}" cy="${oy.toFixed(1)}" r="${Math.max(1,r).toFixed(1)}" fill="${flr.petals}" opacity="${(0.8-i*0.04).toFixed(2)}"/>`;
+        const oy=cy+i*rng(9,14);
+        const ox=cx+rng(-13,13)*Math.sin(i*0.85+1);
+        const r=Math.max(3.5,rng(8,12)*(1-i*0.042));
+        g+=`<circle cx="${f(ox)}" cy="${f(oy)}" r="${f(r)}" fill="${i<3?flr.p2:flr.p1}" opacity="${Math.min(0.9,0.92-i*0.03).toFixed(2)}"/>`;
       }
     }
-    else if(flr.type==='white-bloom'){
-      // Delicate 6-petal flower
-      for(let p=0;p<6;p++){
-        const a=(p/6)*Math.PI*2;
-        const px=cx+Math.cos(a)*sz*0.5;
-        const py=cy+Math.sin(a)*sz*0.5;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*0.35).toFixed(1)}" ry="${(sz*0.2).toFixed(1)}" fill="${flr.petals}" opacity="0.7" transform="rotate(${(a*180/Math.PI).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+    else if(flr.type==='poppy'){
+      for(let p=0;p<4;p++){
+        const a=p/4*360+rng(-8,8);
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.72,sz*0.98)}" fill="${p%2===0?flr.p1:flr.p2}" opacity="0.82"/></g>`;
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.15).toFixed(1)}" fill="#E8D8B0"/>`;
+      for(let s=0;s<10;s++){
+        const sa2=s/10*Math.PI*2,sl=sz*0.23;
+        g+=`<line x1="${f(cx)}" y1="${f(cy)}" x2="${f(cx+Math.cos(sa2)*sl)}" y2="${f(cy+Math.sin(sa2)*sl)}" stroke="${flr.p3}" stroke-width="1.4" opacity="0.75"/>`;
+        g+=`<circle cx="${f(cx+Math.cos(sa2)*sl*1.08)}" cy="${f(cy+Math.sin(sa2)*sl*1.08)}" r="1.8" fill="${flr.center}" opacity="0.88"/>`;
+      }
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.22)}" fill="#1A1A1A" opacity="0.75"/>`;
     }
-    else {
-      // Generic peony / lavender - lush overlapping petals
-      const petals=6+Math.floor(Math.random()*3);
-      for(let p=0;p<petals;p++){
-        const a=(p/petals)*Math.PI*2+rng(-0.2,0.2);
-        const dist=sz*rng(0.4,0.7);
-        const px=cx+Math.cos(a)*dist;
-        const py=cy+Math.sin(a)*dist;
-        g+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="${(sz*rng(0.3,0.5)).toFixed(1)}" ry="${(sz*rng(0.2,0.35)).toFixed(1)}" fill="${flr.petals}" opacity="${rng(0.6,0.85).toFixed(2)}" transform="rotate(${(a*180/Math.PI+rng(-15,15)).toFixed(0)},${px.toFixed(1)},${py.toFixed(1)})"/>`;
+    else{
+      for(let p=0;p<8;p++){
+        const a=p/8*360;
+        g+=`<g transform="rotate(${a},${f(cx)},${f(cy)})"><path d="${petalUp(cx,cy,sz*0.36,sz*0.88)}" fill="${flr.p1}" opacity="0.8"/></g>`;
       }
-      g+=`<circle cx="${cx}" cy="${cy}" r="${(sz*0.2).toFixed(1)}" fill="${flr.center}"/>`;
+      g+=`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(sz*0.25)}" fill="${flr.center}"/>`;
     }
     g+=`</g>`;
     return g;
   }
 
-  // Lush vines from all edges, filling the full height
-  const vines=[
-    // Left edge
-    {x:-5,y:h*0.08,dir:'right',seg:8},
-    {x:-5,y:h*0.28,dir:'right',seg:9},
-    {x:-5,y:h*0.48,dir:'right',seg:8},
-    {x:-5,y:h*0.68,dir:'right',seg:9},
-    {x:-5,y:h*0.88,dir:'right',seg:8},
-    // Right edge
-    {x:w+5,y:h*0.12,dir:'left',seg:8},
-    {x:w+5,y:h*0.35,dir:'left',seg:9},
-    {x:w+5,y:h*0.55,dir:'left',seg:8},
-    {x:w+5,y:h*0.75,dir:'left',seg:9},
-    {x:w+5,y:h*0.92,dir:'left',seg:7},
-    // Bottom edge
-    {x:w*0.1,y:h+5,dir:'up',seg:9},
-    {x:w*0.35,y:h+5,dir:'up',seg:8},
-    {x:w*0.6,y:h+5,dir:'up',seg:8},
-    {x:w*0.85,y:h+5,dir:'up',seg:9},
-    // Top edge
-    {x:w*0.2,y:-5,dir:'down',seg:7},
-    {x:w*0.7,y:-5,dir:'down',seg:7},
+  let svg=`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Vines arranged clockwise around the perimeter: top → right → bottom → left
+  // Delay is proportional to clockwise position so they appear to sweep around the text.
+  const sweepDur=4.8;
+  const rawVines=[
+    // Top edge, left→right  (0°–90° clockwise)
+    {x:w*0.08, y:-5,   dir:'down', seg:12},
+    {x:w*0.3,  y:-5,   dir:'down', seg:13},
+    {x:w*0.55, y:-5,   dir:'down', seg:13},
+    {x:w*0.8,  y:-5,   dir:'down', seg:12},
+    // Right edge, top→bottom  (90°–180°)
+    {x:w+5,    y:h*0.08, dir:'left', seg:12},
+    {x:w+5,    y:h*0.3,  dir:'left', seg:13},
+    {x:w+5,    y:h*0.55, dir:'left', seg:13},
+    {x:w+5,    y:h*0.8,  dir:'left', seg:12},
+    // Bottom edge, right→left  (180°–270°)
+    {x:w*0.92, y:h+5,  dir:'up',   seg:12},
+    {x:w*0.7,  y:h+5,  dir:'up',   seg:13},
+    {x:w*0.45, y:h+5,  dir:'up',   seg:13},
+    {x:w*0.2,  y:h+5,  dir:'up',   seg:12},
+    // Left edge, bottom→top  (270°–360°)
+    {x:-5,     y:h*0.92, dir:'right', seg:12},
+    {x:-5,     y:h*0.7,  dir:'right', seg:13},
+    {x:-5,     y:h*0.45, dir:'right', seg:13},
+    {x:-5,     y:h*0.2,  dir:'right', seg:12},
   ];
 
-  vines.forEach((v,vi)=>{
+  rawVines.forEach((v,vi)=>{
     const vine=makeVinePath(v.x,v.y,v.dir,v.seg);
-    const baseDelay=vi*0.15;
-    const stemColor=pick(greens);
+    // Clockwise staggered delay — each vine a fraction of sweepDur later
+    const bd=(vi/rawVines.length)*sweepDur;
+    const sc=pick(greens),dk=pick(darkG);
+    const dur=rng(2.7,4.2).toFixed(1);
 
-    // Main stem
-    svg+=`<path class="v-stem" d="${vine.d}" stroke="${stemColor}" stroke-width="2.2" opacity="0.5" style="--len:${vine.len};--dur:${rng(1.4,2.2).toFixed(1)}s;--d:${baseDelay.toFixed(2)}s"/>`;
+    // Triple-stroke for depth: shadow → main → highlight
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${dk}" stroke-width="${rng(6,8).toFixed(1)}" opacity="0.2" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(4,6).toFixed(1)}" opacity="0.82" style="--len:${vine.len};--dur:${dur}s;--d:${bd.toFixed(2)}s"/>`;
+    svg+=`<path class="v-stem" d="${vine.d}" stroke="${sc}" stroke-width="${rng(1,2).toFixed(1)}" opacity="0.38" style="--len:${vine.len};--dur:${dur}s;--d:${(bd+0.02).toFixed(2)}s"/>`;
 
-    // Branch offshoots
+    // Branches
     vine.pts.forEach((pt,pi)=>{
-      if(pi<2||Math.random()>0.35)return;
-      const bDir=Math.random()>0.5?'right':'left';
-      const branch=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*3));
-      const bDelay=baseDelay+pi*0.12+0.3;
-      svg+=`<path class="v-stem" d="${branch.d}" stroke="${pick(greens)}" stroke-width="1.4" opacity="0.35" style="--len:${branch.len};--dur:${rng(1,1.6).toFixed(1)}s;--d:${bDelay.toFixed(2)}s"/>`;
+      if(pi<2||Math.random()>0.42)return;
+      const bDir=['right','left','up','down'].filter(d=>d!==v.dir)[Math.floor(Math.random()*3)];
+      const br=makeVinePath(pt.x,pt.y,bDir,2+Math.floor(Math.random()*4));
+      const bbd=bd+pi*0.1+0.22;
+      const bdur=rng(1.35,2.55).toFixed(1);
+      const bc=pick(greens),bdk=pick(darkG);
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bdk}" stroke-width="${rng(3,4.5).toFixed(1)}" opacity="0.18" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
+      svg+=`<path class="v-stem" d="${br.d}" stroke="${bc}" stroke-width="${rng(2,3.5).toFixed(1)}" opacity="0.72" style="--len:${br.len};--dur:${bdur}s;--d:${bbd.toFixed(2)}s"/>`;
 
-      // Sub-branch leaves
-      branch.pts.forEach((bp,bi)=>{
-        if(bi===0)return;
-        const lSize=rng(6,12);
-        const lDelay=bDelay+bi*0.12+0.2;
-        svg+=`${leafPath(bp.x,bp.y,lSize,rng(0,360).toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
+      br.pts.forEach((bp,bi)=>{
+        if(bi===0||inSafe(bp.x,bp.y,35))return;
+        svg+=makeLeaf(bp.x,bp.y,rng(22,42),rng(0,360),bbd+bi*0.1+0.15);
       });
+      if(Math.random()>0.45){
+        const tip=br.pts[br.pts.length-1];
+        if(!inSafe(tip.x,tip.y,20))
+          svg+=makeTendril(tip.x,tip.y,bbd+br.pts.length*0.1+0.2);
+      }
     });
 
     // Leaves along main stem
     vine.pts.forEach((pt,pi)=>{
-      if(pi===0)return;
-      const lDelay=baseDelay+pi*0.13+0.3;
-      const lSize=rng(8,16);
-      const rot=rng(0,360);
-      svg+=`${leafPath(pt.x,pt.y,lSize,rot.toFixed(0))} style="--d:${lDelay.toFixed(2)}s"/>`;
-      // Paired leaf
-      if(Math.random()>0.4){
-        const s2=lSize*0.7;
-        svg+=`${leafPath(pt.x+rng(-6,6),pt.y+rng(-6,6),s2,(rot+rng(30,60)).toFixed(0))} style="--d:${(lDelay+0.1).toFixed(2)}s"/>`;
+      if(pi===0||inSafe(pt.x,pt.y,35))return;
+      const ld=bd+pi*0.11+0.22;
+      svg+=makeLeaf(pt.x,pt.y,rng(32,60),rng(0,360),ld);
+      if(Math.random()>0.38){
+        const lx=pt.x+rng(-22,22),ly=pt.y+rng(-22,22);
+        if(!inSafe(lx,ly,10))
+          svg+=makeLeaf(lx,ly,rng(24,44),rng(0,360),ld+0.1);
       }
     });
 
-    // Flowers and buds along the vine
+    // Flowers and buds
     vine.pts.forEach((pt,pi)=>{
       if(pi<2)return;
-      const fDelay=baseDelay+pi*0.15+0.6;
-      if(Math.random()<0.55){
-        // Flower
+      const fd=bd+pi*0.14+0.48;
+      const fx=pt.x+rng(-18,18),fy=pt.y+rng(-18,18);
+      if(Math.random()<0.6&&!inSafe(fx,fy,65))
+        svg+=makeFlower(fx,fy,fd,pick(flowerPalettes));
+      if(Math.random()<0.45){
         const flr=pick(flowerPalettes);
-        svg+=makeFlower(pt.x+rng(-5,5),pt.y+rng(-5,5),fDelay,flr);
-      }
-      if(Math.random()<0.4){
-        // Small bud
-        const budColor=pick(flowerPalettes).petals;
-        const bx=pt.x+rng(-8,8),by=pt.y+rng(-8,8);
-        svg+=`<g class="v-bud" style="--d:${(fDelay+0.2).toFixed(2)}s"><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rng(2,4).toFixed(1)}" fill="${budColor}" opacity="0.6"/></g>`;
+        const bx=pt.x+rng(-25,25),by=pt.y+rng(-25,25);
+        if(!inSafe(bx,by,22)){
+          const bs=rng(8,16);
+          svg+=`<g class="v-bud" style="--d:${(fd+0.2).toFixed(2)}s;--sa:3deg;--sd:${rng(4,8).toFixed(1)}s"><ellipse cx="${f(bx)}" cy="${f(by)}" rx="${f(bs*0.58)}" ry="${f(bs)}" fill="${flr.p2}" opacity="0.8"/><ellipse cx="${f(bx)}" cy="${f(by+bs*0.22)}" rx="${f(bs*0.38)}" ry="${f(bs*0.58)}" fill="${flr.p1}" opacity="0.5"/></g>`;
+        }
       }
     });
+
+    // Tendril at main vine tip
+    if(Math.random()>0.38){
+      const tip=vine.pts[vine.pts.length-1];
+      if(!inSafe(tip.x,tip.y,25))
+        svg+=makeTendril(tip.x,tip.y,bd+vine.pts.length*0.13+0.3);
+    }
   });
 
   svg+=`</svg>`;
@@ -1582,22 +1998,155 @@ function createVines(){
 }
 
 function withdrawVines(callback){
-  const elapsed=Date.now()-vineStartTime;
-  const remaining=Math.max(0,VINE_MIN_MS-elapsed);
+  const canvas=$('#vineCanvas');
+  canvas.classList.add('withdrawing');
   setTimeout(()=>{
-    const canvas=$('#vineCanvas');
-    canvas.classList.add('withdrawing');
-    setTimeout(()=>{
-      canvas.innerHTML='';
-      if(callback)callback();
-    },700);
-  },remaining);
+    canvas.innerHTML='';
+    if(callback)callback();
+  },700);
 }
+
+// ========== VERSION CHECK ==========
+const APP_VERSION = '1.5';
+async function checkForUpdate() {
+  try {
+    const r = await fetch('/api/version');
+    const {version} = await r.json();
+    if (version !== APP_VERSION) {
+      const btn = document.getElementById('refreshBtn');
+      if (btn) {
+        btn.textContent = 'Update Available — Tap to Refresh';
+        btn.classList.add('btn-update-pending');
+      }
+    }
+  } catch(e) {}
+}
+
+// ========== CLOUD SYNC ==========
+const SYNC_ENDPOINT = '/api/sync';
+
+function getSyncCode() {
+  let code = loadData('rb_sync_code', null);
+  if (!code) {
+    // Generate: 8 uppercase hex characters
+    code = (Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2))
+             .toUpperCase().replace(/[^A-F0-9]/g,'').slice(0,8);
+    saveData('rb_sync_code', code);
+  }
+  return code;
+}
+
+async function syncToServer(silent) {
+  const code = getSyncCode();
+  const payload = { recipes, grocery, updatedAt: Date.now() };
+  try {
+    await fetch(`${SYNC_ENDPOINT}/${code}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ data: payload })
+    });
+    if (!silent) setSyncStatus('Synced ✓', true);
+  } catch(e) {
+    if (!silent) setSyncStatus('Saved locally', null);
+  }
+}
+
+async function syncFromServer() {
+  const code = getSyncCode();
+  setSyncStatus('Syncing…', null);
+  try {
+    const r = await fetch(`${SYNC_ENDPOINT}/${code}`);
+    const { data } = await r.json();
+    if (data && Array.isArray(data.recipes) && data.recipes.length > 0) {
+      // Server has data — use it as the source of truth
+      recipes = data.recipes;
+      grocery = data.grocery || [];
+      saveData('rb_recipes', recipes);
+      saveData('rb_grocery', grocery);
+      renderRecipes();
+      renderGrocery();
+    } else {
+      // No server record yet — push local data up to create one
+      await syncToServer(true);
+    }
+    setSyncStatus('Synced ✓', true);
+  } catch(e) {
+    setSyncStatus('Saved locally', null);
+  }
+}
+
+function setSyncStatus(msg, ok) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--error)' : 'var(--text-muted)';
+}
+
+function initSyncUI() {
+  const code = getSyncCode();
+  const display = document.getElementById('syncCodeDisplay');
+  if (display) display.value = code;
+
+  document.getElementById('copySyncBtn')?.addEventListener('click', () => {
+    navigator.clipboard.writeText(code).then(() => toast('Sync code copied!')).catch(() => {
+      // Fallback for older browsers
+      display.select();
+      document.execCommand('copy');
+      toast('Sync code copied!');
+    });
+  });
+
+  document.getElementById('restoreBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('restoreCodeInput');
+    const entered = (input?.value || '').trim().toUpperCase();
+    if (!entered) { toast('Please enter a sync code first.'); return; }
+    try {
+      setSyncStatus('Restoring…', null);
+      const r = await fetch(`${SYNC_ENDPOINT}/${entered}`);
+      const { data } = await r.json();
+      if (data && Array.isArray(data.recipes) && data.recipes.length > 0) {
+        recipes = data.recipes;
+        grocery = data.grocery || [];
+        saveData('rb_recipes', recipes);
+        saveData('rb_grocery', grocery);
+        saveData('rb_sync_code', entered);
+        if (display) display.value = entered;
+        renderRecipes();
+        renderGrocery();
+        setSyncStatus('Synced ✓', true);
+        toast('Recipes restored! ✓');
+      } else {
+        setSyncStatus('Saved locally', null);
+        toast('No recipes found for that code. Double-check it and try again.');
+      }
+    } catch(e) {
+      setSyncStatus('Saved locally', null);
+      toast('Restore failed — check your connection and try again.');
+    }
+  });
+}
+
+// Patch saveData so writes to recipes/grocery also push to server
+(function(){
+  const _orig = saveData;
+  saveData = function(key, val) {
+    _orig(key, val);
+    if (key === 'rb_recipes' || key === 'rb_grocery') {
+      syncToServer(true);
+    }
+  };
+})();
 
 // ========== INIT ==========
 renderRecipes();
 renderGrocery();
 lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+// FAB entrance on load
+setTimeout(()=>{const fab=$('.fab');if(fab){fab.classList.add('bounce-in')}},80);
+// Cloud sync + update check
+initSyncUI();
+syncFromServer();
+checkForUpdate();
 </script>
 </body>
 </html>
