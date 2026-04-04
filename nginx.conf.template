@@ -1,5 +1,5 @@
 server {
-    listen 80;
+    listen ${PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -8,7 +8,6 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # Cache static assets
     location ~* \.(png|jpg|jpeg|gif|ico|svg|css|js)$ {
         expires 7d;
         add_header Cache-Control "public, immutable";
