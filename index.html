@@ -90,13 +90,14 @@ body{
 .app-header{
   position:fixed;top:0;left:0;right:0;z-index:100;
   height:var(--header-h);
-  background:var(--bg);
-  border-bottom:1px solid var(--border-light);
+  background:rgba(251,248,244,0.78);
+  border-bottom:1px solid rgba(255,255,255,0.45);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
 }
+[data-theme="dark"] .app-header{background:rgba(26,23,20,0.82);border-bottom-color:rgba(255,255,255,0.06)}
 .header-left{display:flex;align-items:center;gap:10px}
 .app-logo svg{width:28px;height:28px;color:var(--accent)}
 .app-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.01em;color:var(--text)}
@@ -114,10 +115,14 @@ body{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
   height:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
   padding-bottom:env(safe-area-inset-bottom, 0px);
-  background:var(--surface);
-  border-top:1px solid var(--border-light);
+  background:rgba(255,255,255,0.82);
+  border-top:1px solid rgba(255,255,255,0.5);
+  box-shadow:0 -4px 24px rgba(61,50,41,0.08);
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
   display:flex;align-items:stretch;
 }
+[data-theme="dark"] .tab-bar{background:rgba(36,32,25,0.88);border-top-color:rgba(255,255,255,0.05);box-shadow:0 -4px 24px rgba(0,0,0,0.3)}
 .tab-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   color:var(--text-faint);font-size:11px;font-weight:500;letter-spacing:0.02em;
@@ -154,16 +159,22 @@ body{
 .search-wrap input::placeholder{color:var(--text-faint)}
 .search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-muted)}
 .search-wrap .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-faint);width:18px;height:18px}
-.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-snap-type:x mandatory}
 .filter-row::-webkit-scrollbar{display:none}
 .filter-chip{
-  flex-shrink:0;height:34px;padding:0 14px;border-radius:var(--radius-full);
-  font-size:13px;font-weight:500;border:1px solid var(--border);
+  flex-shrink:0;height:36px;padding:0 14px;border-radius:var(--radius-full);
+  font-size:13px;font-weight:500;border:1.5px solid var(--border);
   background:var(--surface);color:var(--text-muted);white-space:nowrap;
-  transition:all var(--transition);
+  transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  scroll-snap-align:start;display:inline-flex;align-items:center;gap:5px;
 }
-.filter-chip:active{transform:scale(0.96)}
-.filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.filter-chip:active{transform:scale(0.95)}
+.filter-chip[data-cat="All"].active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.04);box-shadow:0 2px 10px rgba(196,112,90,0.35)}
+.filter-chip[data-cat="Breakfast"].active{background:rgba(245,200,66,0.14);color:#A07000;border-color:#E8A020;transform:scale(1.04);box-shadow:0 2px 8px rgba(240,160,48,0.25)}
+.filter-chip[data-cat="Lunch"].active{background:rgba(76,175,96,0.12);color:#256B38;border-color:#4CAF60;transform:scale(1.04);box-shadow:0 2px 8px rgba(76,175,96,0.25)}
+.filter-chip[data-cat="Dinner"].active{background:rgba(196,112,90,0.12);color:var(--accent-active);border-color:var(--accent);transform:scale(1.04);box-shadow:0 2px 8px rgba(196,112,90,0.25)}
+.filter-chip[data-cat="Dessert"].active{background:rgba(232,145,180,0.12);color:#A03068;border-color:#E080AA;transform:scale(1.04);box-shadow:0 2px 8px rgba(232,145,180,0.25)}
+.filter-chip[data-cat="Snack"].active{background:rgba(80,160,188,0.12);color:#1A6898;border-color:#50A0BC;transform:scale(1.04);box-shadow:0 2px 8px rgba(80,160,188,0.25)}
 
 /* ========== RECIPE GRID ========== */
 .recipe-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -172,13 +183,27 @@ body{
 
 .recipe-card{
   background:var(--surface);border-radius:var(--radius-lg);
-  padding:16px;cursor:pointer;
+  padding:0;cursor:pointer;overflow:hidden;
   border:1px solid var(--border-light);
-  transition:transform var(--transition),box-shadow var(--transition);
+  transition:transform 0.25s ease,box-shadow 0.25s ease;
 }
 .recipe-card:active{transform:scale(0.97)}
-.recipe-card:hover{box-shadow:var(--shadow-md)}
-.recipe-card-emoji{font-size:32px;margin-bottom:8px;line-height:1}
+.recipe-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(61,50,41,0.14)}
+
+/* Category gradient banners */
+.recipe-card-banner{
+  height:80px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.recipe-card[data-category="Breakfast"] .recipe-card-banner{background:linear-gradient(135deg,#F5C842 0%,#F0A030 60%,#E87820 100%)}
+.recipe-card[data-category="Lunch"] .recipe-card-banner{background:linear-gradient(135deg,#7BC67E 0%,#4CAF60 60%,#2E8B47 100%)}
+.recipe-card[data-category="Dinner"] .recipe-card-banner{background:linear-gradient(135deg,#C4705A 0%,#A0503A 60%,#7A3520 100%)}
+.recipe-card[data-category="Dessert"] .recipe-card-banner{background:linear-gradient(135deg,#E891B4 0%,#D4608A 60%,#B84070 100%)}
+.recipe-card[data-category="Snack"] .recipe-card-banner{background:linear-gradient(135deg,#80C5D4 0%,#50A0BC 60%,#2878A0 100%)}
+.recipe-card:not([data-category]) .recipe-card-banner{background:linear-gradient(135deg,#C8BFB6 0%,#A09488 100%)}
+
+.recipe-card-emoji{font-size:38px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18))}
+.recipe-card-body{padding:12px 14px 14px}
 .recipe-card-name{font-family:var(--font-display);font-size:17px;line-height:1.25;margin-bottom:6px;color:var(--text)}
 .recipe-card-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .recipe-card-badge{
@@ -272,53 +297,70 @@ body{
 .btn-icon{gap:6px}
 .btn-icon svg{width:16px;height:16px}
 
-/* ========== RECIPE DETAIL ========== */
-.detail-top{margin-bottom:20px}
-.detail-emoji{font-size:40px;margin-bottom:8px}
-.detail-name{font-family:var(--font-display);font-size:26px;line-height:1.2;margin-bottom:8px}
-.detail-meta{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px}
+/* ========== RECIPE DETAIL (UPGRADED) ========== */
+#detailBody{padding:0}
+
+.detail-hero{
+  text-align:center;padding:28px 20px 20px;
+  border-bottom:1px solid var(--border-light);
+}
+.detail-hero-emoji-wrap{
+  width:90px;height:90px;border-radius:var(--radius-full);
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;line-height:1;margin:0 auto 14px;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,0.14));
+}
+.detail-hero[data-category="Breakfast"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#F5C842,#F0A030)}
+.detail-hero[data-category="Lunch"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#7BC67E,#4CAF60)}
+.detail-hero[data-category="Dinner"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#C4705A,#A0503A)}
+.detail-hero[data-category="Dessert"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#E891B4,#D4608A)}
+.detail-hero[data-category="Snack"] .detail-hero-emoji-wrap{background:linear-gradient(135deg,#80C5D4,#50A0BC)}
+.detail-hero:not([data-category]) .detail-hero-emoji-wrap{background:linear-gradient(135deg,#C8BFB6,#A09488)}
+.detail-hero-name{font-family:var(--font-display);font-size:26px;line-height:1.2;margin-bottom:10px;color:var(--text)}
+.detail-hero-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+
 .detail-badge{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:var(--accent);background:var(--accent-muted);padding:3px 10px;border-radius:var(--radius-full)}
 .detail-info{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text-muted)}
 .detail-info svg{width:15px;height:15px}
 
-.detail-section{margin-bottom:24px}
-.detail-section-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:10px;
-}
-.detail-section-title{font-family:var(--font-display);font-size:19px;color:var(--text)}
+.detail-section{padding:20px 20px 0}
+.detail-section:last-of-type{padding-bottom:4px}
+.detail-section-divider{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.detail-section-title{font-family:var(--font-display);font-size:19px;font-style:italic;color:var(--text);white-space:nowrap}
+.detail-section-line{flex:1;height:1px;background:linear-gradient(to right,var(--border),transparent)}
 
-.ingredient-item{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 0;border-bottom:1px solid var(--border-light);
-  font-size:14px;
+/* Ingredient chips */
+.ingredient-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.ingredient-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 10px 6px 13px;border-radius:var(--radius-full);
+  border:1px solid var(--border);background:var(--surface);
+  font-size:13px;color:var(--text);
 }
-.ingredient-item:last-child{border-bottom:none}
-.ingredient-text{flex:1;color:var(--text)}
-.ingredient-add{
-  flex-shrink:0;width:32px;height:32px;border-radius:var(--radius-full);
+.ingredient-chip-add{
+  width:20px;height:20px;border-radius:var(--radius-full);flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  color:var(--accent);transition:background var(--transition);
+  color:var(--text-faint);background:var(--surface-alt);
+  transition:all var(--transition);
 }
-.ingredient-add:active{background:var(--accent-muted)}
-.ingredient-add svg{width:16px;height:16px}
-.ingredient-add.added{color:var(--success)}
+.ingredient-chip-add:active{color:var(--accent);background:var(--accent-muted)}
+.ingredient-chip-add.added{color:var(--success);background:rgba(90,138,74,0.12)}
+.ingredient-chip-add svg{width:11px;height:11px}
 
-.step-item{display:flex;gap:12px;padding:10px 0}
-.step-num{
-  flex-shrink:0;width:26px;height:26px;border-radius:var(--radius-full);
-  background:var(--accent-muted);color:var(--accent);
-  font-size:13px;font-weight:600;
-  display:flex;align-items:center;justify-content:center;
+/* Instruction steps */
+.step-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.step-item:last-child{border-bottom:none}
+.step-num-big{
+  flex-shrink:0;font-family:var(--font-display);font-size:28px;line-height:1;
+  color:var(--accent);opacity:0.35;width:32px;text-align:center;padding-top:3px;
 }
-.step-text{font-size:14px;line-height:1.55;color:var(--text);padding-top:2px}
+.step-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:7px}
 
 .detail-notes{
   background:var(--surface-alt);border-radius:var(--radius-md);
   padding:14px 16px;font-size:14px;color:var(--text-muted);line-height:1.55;
 }
-
-.detail-actions{display:flex;gap:10px;margin-top:24px}
+.detail-actions{display:flex;gap:10px;padding:20px 20px 32px}
 
 /* ========== SCAN TAB ========== */
 .scan-mode-toggle{
@@ -472,12 +514,28 @@ body{
   position:fixed;bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
   left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--text);color:var(--bg);
-  padding:10px 20px;border-radius:var(--radius-full);
-  font-size:14px;font-weight:500;
-  opacity:0;transition:all 0.3s ease;z-index:400;pointer-events:none;
-  white-space:nowrap;
+  padding:10px 20px 13px;border-radius:var(--radius-full);
+  font-size:14px;font-weight:500;overflow:hidden;
+  opacity:0;transition:opacity 0.2s ease,transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:400;pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-progress{position:absolute;bottom:0;left:0;height:3px;width:100%;
+  background:rgba(255,255,255,0.38);border-radius:0 0 var(--radius-full) var(--radius-full);
+  animation:toastProgress 2.2s linear forwards}
+@keyframes toastProgress{from{width:100%}to{width:0%}}
+
+/* ========== ENTRANCE ANIMATIONS ========== */
+@keyframes slideUpFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.recipe-card{animation:slideUpFade 0.3s ease both}
+
+@keyframes slideInRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+.tab-panel.slide-in-right{animation:slideInRight 0.28s ease both}
+.tab-panel.slide-in-left{animation:slideInLeft 0.28s ease both}
+
+@keyframes fabBounce{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+.fab.bounce-in{animation:fabBounce 0.42s cubic-bezier(0.34,1.56,0.64,1) both}
 
 /* ========== SETTINGS PAGE ========== */
 .settings-page{
@@ -561,20 +619,20 @@ body{
 
 <!-- TAB BAR -->
 <nav class="tab-bar">
-  <button class="tab-btn active" data-tab="recipes">
+  <button class="tab-btn active" data-tab="recipes" data-tab-index="0">
     <i data-lucide="book-open"></i>
     <span>Recipes</span>
   </button>
-  <button class="tab-btn" data-tab="scan">
+  <button class="tab-btn" data-tab="scan" data-tab-index="1">
     <i data-lucide="camera"></i>
     <span>Scan</span>
   </button>
-  <button class="tab-btn" data-tab="grocery">
+  <button class="tab-btn" data-tab="grocery" data-tab-index="2">
     <i data-lucide="shopping-bag"></i>
     <span>Grocery</span>
     <span class="tab-badge" id="groceryBadge" style="display:none">0</span>
   </button>
-  <button class="tab-btn" data-tab="settings">
+  <button class="tab-btn" data-tab="settings" data-tab-index="3">
     <i data-lucide="settings"></i>
     <span>Settings</span>
   </button>
@@ -587,12 +645,12 @@ body{
     <input type="text" id="recipeSearch" placeholder="Search recipes...">
   </div>
   <div class="filter-row" id="filterRow">
-    <button class="filter-chip active" data-cat="All">All</button>
-    <button class="filter-chip" data-cat="Breakfast">Breakfast</button>
-    <button class="filter-chip" data-cat="Lunch">Lunch</button>
-    <button class="filter-chip" data-cat="Dinner">Dinner</button>
-    <button class="filter-chip" data-cat="Dessert">Dessert</button>
-    <button class="filter-chip" data-cat="Snack">Snack</button>
+    <button class="filter-chip active" data-cat="All">✦ All</button>
+    <button class="filter-chip" data-cat="Breakfast">🌅 Breakfast</button>
+    <button class="filter-chip" data-cat="Lunch">🥗 Lunch</button>
+    <button class="filter-chip" data-cat="Dinner">🍝 Dinner</button>
+    <button class="filter-chip" data-cat="Dessert">🍰 Dessert</button>
+    <button class="filter-chip" data-cat="Snack">🍿 Snack</button>
   </div>
   <div class="recipe-grid" id="recipeGrid"></div>
   <div class="empty-state" id="recipesEmpty" style="display:none">
@@ -820,7 +878,7 @@ body{
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function toast(msg){const t=$('#toast');t.innerHTML=msg+'<div class="toast-progress"></div>';t.classList.remove('show');void t.offsetWidth;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
 
 // ========== STORAGE ==========
 function loadData(key,fallback){try{const d=localStorage.getItem(key);return d?JSON.parse(d):fallback}catch(e){return fallback}}
@@ -885,15 +943,26 @@ function updateThemeIcon(theme){
 }
 
 // ========== TABS ==========
+const tabOrder=['recipes','scan','grocery','settings'];
+let currentTabIdx=0;
 $$('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    currentTab=btn.dataset.tab;
+    const newTab=btn.dataset.tab;
+    if(newTab===currentTab)return;
+    const newIdx=parseInt(btn.dataset.tabIndex,10);
+    const dir=newIdx>currentTabIdx?'right':'left';
+    currentTabIdx=newIdx;
+    currentTab=newTab;
     $$('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    $$('.tab-panel').forEach(p=>p.classList.remove('active'));
-    $(`#panel-${currentTab}`).classList.add('active');
+    $$('.tab-panel').forEach(p=>{p.classList.remove('active','slide-in-right','slide-in-left')});
+    const panel=$(`#panel-${currentTab}`);
+    panel.classList.add('active',`slide-in-${dir}`);
     if(currentTab==='grocery')renderGrocery();
-    if(currentTab==='recipes')renderRecipes();
+    if(currentTab==='recipes'){
+      renderRecipes();
+      const fab=$('.fab');fab.classList.remove('bounce-in');void fab.offsetWidth;fab.classList.add('bounce-in');
+    }
   });
 });
 
@@ -914,14 +983,18 @@ function renderRecipes(){
     return;
   }
   empty.style.display='none';
-  grid.innerHTML=filtered.map(r=>`
-    <div class="recipe-card" data-id="${r.id}">
-      <div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
-      <div class="recipe-card-name">${esc(r.name)}</div>
-      <div class="recipe-card-meta">
-        <span class="recipe-card-badge">${esc(r.category)}</span>
-        ${r.time?`<span class="recipe-card-time"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
-        ${r.servings?`<span class="recipe-card-servings"><i data-lucide="users"></i>${esc(r.servings)}</span>`:''}
+  grid.innerHTML=filtered.map((r,i)=>`
+    <div class="recipe-card" data-id="${r.id}" data-category="${esc(r.category)}" style="animation-delay:${Math.min(i,7)*60}ms">
+      <div class="recipe-card-banner">
+        <div class="recipe-card-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      </div>
+      <div class="recipe-card-body">
+        <div class="recipe-card-name">${esc(r.name)}</div>
+        <div class="recipe-card-meta">
+          <span class="recipe-card-badge">${esc(r.category)}</span>
+          ${r.time?`<span class="recipe-card-time"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
+          ${r.servings?`<span class="recipe-card-servings"><i data-lucide="users"></i>${esc(r.servings)}</span>`:''}
+        </div>
       </div>
     </div>
   `).join('');
@@ -950,39 +1023,52 @@ function openDetail(id){
   const groceryIngredients=new Set(grocery.map(g=>g.text));
 
   let html=`
-    <div class="detail-top">
-      <div class="detail-emoji">${catEmoji[r.category]||'\u{1F37D}'}</div>
-      <div class="detail-name">${esc(r.name)}</div>
-      <div class="detail-meta">
+    <div class="detail-hero" data-category="${esc(r.category)}">
+      <div class="detail-hero-emoji-wrap">${catEmoji[r.category]||'\u{1F37D}'}</div>
+      <div class="detail-hero-name">${esc(r.name)}</div>
+      <div class="detail-hero-meta">
         <span class="detail-badge">${esc(r.category)}</span>
         ${r.time?`<span class="detail-info"><i data-lucide="clock"></i>${esc(r.time)}</span>`:''}
         ${r.servings?`<span class="detail-info"><i data-lucide="users"></i>${esc(r.servings)} servings</span>`:''}
       </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-header">
+      <div class="detail-section-divider">
         <span class="detail-section-title">Ingredients</span>
+        <div class="detail-section-line"></div>
         <button class="btn btn-sm btn-ghost btn-icon" onclick="addAllIngredients('${r.id}')"><i data-lucide="plus-circle"></i> Add All</button>
       </div>
-      ${(r.ingredients||[]).map((ing,i)=>`
-        <div class="ingredient-item">
-          <span class="ingredient-text">${esc(ing)}</span>
-          <button class="ingredient-add ${groceryIngredients.has(ing)?'added':''}" onclick="addIngredient('${r.id}',${i})" title="Add to grocery list">
-            <i data-lucide="${groceryIngredients.has(ing)?'check':'plus'}"></i>
-          </button>
-        </div>
-      `).join('')}
+      <div class="ingredient-chips">
+        ${(r.ingredients||[]).map((ing,i)=>`
+          <div class="ingredient-chip">
+            <span>${esc(ing)}</span>
+            <button class="ingredient-chip-add ${groceryIngredients.has(ing)?'added':''}" onclick="addIngredient('${r.id}',${i})" title="Add to grocery">
+              <i data-lucide="${groceryIngredients.has(ing)?'check':'plus'}"></i>
+            </button>
+          </div>
+        `).join('')}
+      </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-title">Instructions</div>
+      <div class="detail-section-divider">
+        <span class="detail-section-title">Instructions</span>
+        <div class="detail-section-line"></div>
+      </div>
       ${(r.instructions||[]).map((step,i)=>`
         <div class="step-item">
-          <span class="step-num">${i+1}</span>
+          <span class="step-num-big">${i+1}</span>
           <span class="step-text">${esc(step)}</span>
         </div>
       `).join('')}
     </div>
-    ${r.notes?`<div class="detail-section"><div class="detail-section-title">Notes</div><div class="detail-notes">${esc(r.notes)}</div></div>`:''}
+    ${r.notes?`
+    <div class="detail-section">
+      <div class="detail-section-divider">
+        <span class="detail-section-title">Notes</span>
+        <div class="detail-section-line"></div>
+      </div>
+      <div class="detail-notes">${esc(r.notes)}</div>
+    </div>`:''}
     <div class="detail-actions">
       <button class="btn btn-secondary btn-icon" onclick="editRecipe('${r.id}')"><i data-lucide="pencil"></i> Edit</button>
       <button class="btn btn-danger btn-icon" onclick="deleteRecipe('${r.id}')"><i data-lucide="trash-2"></i> Delete</button>
@@ -1684,6 +1770,8 @@ function withdrawVines(callback){
 renderRecipes();
 renderGrocery();
 lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+// FAB entrance on load
+setTimeout(()=>{const fab=$('.fab');if(fab){fab.classList.add('bounce-in')}},80);
 </script>
 </body>
 </html>
