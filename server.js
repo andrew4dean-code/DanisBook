@@ -35,7 +35,7 @@ initDB().catch(err => console.error('DB init error:', err.message));
 // ── API: Version ─────────────────────────────────────────────────────────────
 // Bump this string on every deploy — clients compare against APP_VERSION in JS
 app.get('/api/version', (req, res) => {
-  res.json({ version: '1.5' });
+  res.json({ version: '1.6' });
 });
 
 // ── API: Sync — fetch user data ───────────────────────────────────────────────

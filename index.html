@@ -693,6 +693,9 @@ body{
       <button class="scan-mode-btn" data-mode="identify">
         <i data-lucide="utensils"></i> Identify a Dish
       </button>
+      <button class="scan-mode-btn" data-mode="instagram">
+        <i data-lucide="instagram"></i> Instagram
+      </button>
     </div>
     <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
     <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
@@ -702,6 +705,22 @@ body{
       <div class="upload-zone-hint">Select one or more images from your camera roll</div>
     </div>
     <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+    <div id="instagramInputSection" style="display:none">
+      <input type="url" id="instagramUrl" class="form-input" placeholder="https://www.instagram.com/p/...">
+      <div class="scan-section-desc" style="margin-top:6px;margin-bottom:16px">Paste a public post link — Gemini reads the caption.</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:12px;color:var(--text-muted)">or upload the video</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div class="upload-zone" id="videoUploadZone">
+        <div class="upload-zone-icon"><i data-lucide="video"></i></div>
+        <div class="upload-zone-text">Tap to select a video</div>
+        <div class="upload-zone-hint">Download the Reel then upload it here</div>
+      </div>
+      <input type="file" id="videoInput" accept="video/*" style="display:none">
+      <div id="videoPreview" style="display:none;margin-top:12px;font-size:13px;color:var(--text-muted)"></div>
+    </div>
     <div class="preview-grid" id="previewGrid"></div>
     <div style="margin-top:16px">
       <button class="btn btn-primary btn-block btn-icon" id="scanBtn" disabled>
@@ -758,7 +777,7 @@ body{
         </svg>
       </div>
       <h1 class="settings-title">Dani's Book</h1>
-      <span class="settings-version">Version <span class="version-num">1.5</span></span>
+      <span class="settings-version">Version <span class="version-num">1.6</span></span>
     </div>
 
     <div class="settings-section">
@@ -807,7 +826,7 @@ body{
     <div class="settings-section">
       <div class="settings-section-title">What's New</div>
       <div class="settings-about">
-        <p style="font-weight:600;color:var(--text)">Version 1.5 — April 2026</p>
+        <p style="font-weight:600;color:var(--text)">Version 1.6 — April 2026</p>
         <p>• Fresh look and feel — warmer colors and smoother touches throughout the app</p>
         <p>• Your recipes now sync safely to the cloud so they're always backed up</p>
         <p>• New Sync Code in Settings — use it to restore your recipes on any device or after clearing your browser</p>
@@ -1221,10 +1240,24 @@ $$('.scan-mode-btn').forEach(btn=>{
       $('#scanSectionTitle').textContent='Snap a Dish';
       $('#scanSectionDesc').textContent='Take a photo of any meal and we will try to figure out what it is and how to make it.';
       $('#scanBtnText').textContent='Identify Dish';
+      $('#uploadZone').style.display='block';
+      $('#instagramInputSection').style.display='none';
+      $('#scanBtn').disabled=selectedFiles.length===0;
+    }else if(scanMode==='instagram'){
+      $('#scanSectionTitle').textContent='From Instagram';
+      $('#scanSectionDesc').textContent='Extract a recipe from a post caption or a downloaded Reel.';
+      $('#scanBtnText').textContent='Get Recipe';
+      $('#uploadZone').style.display='none';
+      $('#instagramInputSection').style.display='block';
+      $('#scanError').style.display='none';
+      updateInstagramBtn();
     }else{
       $('#scanSectionTitle').textContent='Upload Recipe Photos';
       $('#scanSectionDesc').textContent='Take a photo of a recipe from a cookbook, website, or handwritten card.';
       $('#scanBtnText').textContent='Scan Recipe';
+      $('#uploadZone').style.display='block';
+      $('#instagramInputSection').style.display='none';
+      $('#scanBtn').disabled=selectedFiles.length===0;
     }
   });
 });
@@ -1252,6 +1285,26 @@ $('#photoInput').addEventListener('change',e=>{
   $('#scanBtn').disabled=selectedFiles.length===0;
 });
 
+let selectedVideo=null;
+function updateInstagramBtn(){
+  const hasUrl=$('#instagramUrl').value.trim().length>0;
+  const hasVideo=selectedVideo!==null;
+  $('#scanBtn').disabled=!(hasUrl||hasVideo);
+}
+$('#instagramUrl').addEventListener('input',()=>{if(scanMode==='instagram')updateInstagramBtn();});
+$('#videoUploadZone').addEventListener('click',()=>$('#videoInput').click());
+$('#videoInput').addEventListener('change',e=>{
+  selectedVideo=e.target.files[0]||null;
+  const preview=$('#videoPreview');
+  if(selectedVideo){
+    preview.textContent=`Selected: ${selectedVideo.name} (${(selectedVideo.size/1024/1024).toFixed(1)} MB)`;
+    preview.style.display='block';
+  }else{
+    preview.style.display='none';
+  }
+  if(scanMode==='instagram')updateInstagramBtn();
+});
+
 function renderPreviews(){
   const grid=$('#previewGrid');
   grid.innerHTML='';
@@ -1266,6 +1319,7 @@ function renderPreviews(){
 $('#scanBtn').addEventListener('click',async()=>{
   const key=loadData('rb_api_key','');
   if(!key){$('#scanError').style.display='block';$('#scanError').textContent='Please add your Gemini API key in the Settings tab first.';return}
+  if(scanMode==='instagram'){await handleInstagramScan(key);return;}
   if(selectedFiles.length===0)return;
 
   $('#scanError').style.display='none';
@@ -1395,6 +1449,160 @@ function fileToBase64(file){
     reader.onerror=reject;
     reader.readAsDataURL(file);
   });
+}
+
+// ========== INSTAGRAM EXTRACTION ==========
+async function deleteGeminiFile(fileName,key){
+  try{await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${key}`,{method:'DELETE'});}catch(_){}
+}
+
+async function handleInstagramScan(key){
+  const url=$('#instagramUrl').value.trim();
+  const useVideo=selectedVideo!==null;
+  if(!url&&!useVideo)return;
+
+  $('#scanError').style.display='none';
+  $('#scanUploadSection').style.display='none';
+  $('#scanLoading').style.display='flex';
+  createVines();
+
+  const recipeJsonSchema=`{
+  "name": "recipe name",
+  "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
+  "time": "cook time like 30 min",
+  "servings": "number of servings like 4",
+  "ingredients": ["ingredient 1 with measurement", "ingredient 2"],
+  "instructions": ["step 1", "step 2"],
+  "notes": "any tips or notes, or empty string"
+}`;
+
+  const friendly=m=>{const e=new Error(m);e.friendly=true;throw e;};
+  let uploadedFileName=null;
+
+  try{
+    let data;
+
+    if(useVideo){
+      // ---- VIDEO PATH: Gemini File API ----
+      $('#scanLoadingText').textContent='Uploading video...';
+      const separator='gemini_boundary_'+Date.now();
+      const metaJson=JSON.stringify({file:{display_name:selectedVideo.name}});
+      const metaPart=`--${separator}\r\nContent-Type: application/json\r\n\r\n${metaJson}\r\n`;
+      const filePart=`--${separator}\r\nContent-Type: ${selectedVideo.type}\r\n\r\n`;
+      const closePart=`\r\n--${separator}--`;
+      const body=new Blob([metaPart,filePart,selectedVideo,closePart]);
+
+      const uploadResp=await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=multipart&key=${key}`,
+        {method:'POST',headers:{'Content-Type':`multipart/related; boundary=${separator}`,'X-Goog-Upload-Protocol':'multipart'},body}
+      );
+      if(!uploadResp.ok){const err=await uploadResp.json().catch(()=>({}));throw new Error(err.error?.message||`Upload failed (${uploadResp.status})`);}
+      const uploadData=await uploadResp.json();
+      uploadedFileName=uploadData.file?.name;
+      const fileUri=uploadData.file?.uri;
+      if(!uploadedFileName||!fileUri)throw new Error('File upload response missing file info.');
+
+      // Poll until ACTIVE
+      $('#scanLoadingText').textContent='Processing video...';
+      for(let i=0;i<30;i++){
+        await new Promise(r=>setTimeout(r,3000));
+        const pollResp=await fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${key}`);
+        if(!pollResp.ok)break;
+        const pollData=await pollResp.json();
+        if(pollData.state==='ACTIVE')break;
+        if(pollData.state==='FAILED')throw new Error('Video processing failed. Try a shorter clip or screenshot the recipe instead.');
+      }
+
+      // Generate content from video
+      $('#scanLoadingText').textContent='Extracting recipe from video...';
+      const videoPrompt=`Watch this cooking video and extract the complete recipe. Look for: ingredient names and measurements shown on screen or spoken aloud, step-by-step instructions, cook times, serving sizes, and the dish name. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}`;
+      const models=['gemini-2.5-flash','gemini-2.0-flash'];
+      for(const model of models){
+        let success=false;
+        for(let attempt=0;attempt<2;attempt++){
+          const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({contents:[{parts:[{file_data:{mime_type:selectedVideo.type,file_uri:fileUri}},{text:videoPrompt}]}]})
+          });
+          if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Extracting recipe from video...';continue;}
+          if(resp.status===429)break;
+          if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
+          data=await resp.json();success=true;break;
+        }
+        if(success)break;
+        await new Promise(r=>setTimeout(r,500));
+      }
+
+    }else{
+      // ---- URL PATH: url_context tool ----
+      $('#scanLoadingText').textContent='Reading Instagram post...';
+      const urlPrompt=`Fetch this Instagram post URL and extract any recipe from the caption text. Return ONLY valid JSON (no markdown, no code fences) with exactly these fields:\n${recipeJsonSchema}\nURL: ${url}`;
+      const models=['gemini-2.5-flash','gemini-2.0-flash'];
+      for(const model of models){
+        let success=false;
+        for(let attempt=0;attempt<2;attempt++){
+          const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({tools:[{url_context:{}}],contents:[{parts:[{text:urlPrompt}]}]})
+          });
+          if(resp.status===429&&attempt===0){$('#scanLoadingText').textContent='Rate limited, retrying...';await new Promise(r=>setTimeout(r,8000));$('#scanLoadingText').textContent='Reading Instagram post...';continue;}
+          if(resp.status===429)break;
+          if(resp.status===403){const err=await resp.json().catch(()=>({}));const msg=err.error?.message||'';if(msg.includes('leaked'))throw new Error('This API key was flagged as exposed. Please create a new key at ai.google.dev and save it in Settings.');throw new Error(msg||`Permission denied (${resp.status})`);}
+          if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error (${resp.status})`);}
+          data=await resp.json();success=true;break;
+        }
+        if(success)break;
+        await new Promise(r=>setTimeout(r,500));
+      }
+    }
+
+    if(!data)friendly('All models are rate limited. Please try again in a few minutes.');
+    const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!text)friendly(useVideo
+      ?"Couldn't read a recipe from this video. Try a video where the ingredients are shown on screen."
+      :"Couldn't read this post — it may be private or the recipe isn't in the caption. Try screenshotting the caption and using Scan a Recipe instead."
+    );
+    const cleaned=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    let parsed;
+    try{parsed=JSON.parse(cleaned);}catch(_){
+      friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
+    }
+    if(!parsed?.name&&!parsed?.ingredients?.length)friendly(useVideo?"Couldn't find a recipe in this video.":"No recipe found in this post's caption. Try screenshotting it and using Scan a Recipe instead.");
+
+    if(useVideo&&uploadedFileName)deleteGeminiFile(uploadedFileName,key);
+
+    editingId=null;
+    $('#formTitle').textContent='Review Instagram Recipe';
+    $('#fName').value=parsed.name||'';
+    $('#fCategory').value=parsed.category||'Dinner';
+    $('#fTime').value=parsed.time||'';
+    $('#fServings').value=parsed.servings||'';
+    $('#fIngredients').value=(parsed.ingredients||[]).join('\n');
+    $('#fInstructions').value=(parsed.instructions||[]).join('\n');
+    $('#fNotes').value=parsed.notes||'';
+    $('#formSubmitBtn').textContent='Save Recipe';
+
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#formModal').classList.add('open');
+      toast(useVideo?'Recipe extracted from video':'Recipe extracted from Instagram');
+    });
+    $('#instagramUrl').value='';
+    selectedVideo=null;
+    $('#videoInput').value='';
+    $('#videoPreview').style.display='none';
+    $('#scanBtn').disabled=true;
+
+  }catch(err){
+    if(useVideo&&uploadedFileName)deleteGeminiFile(uploadedFileName,key);
+    withdrawVines(()=>{
+      $('#scanLoading').style.display='none';
+      $('#scanUploadSection').style.display='block';
+      $('#scanError').style.display='block';
+      $('#scanError').textContent=err.friendly?err.message:'Extraction failed: '+err.message;
+    });
+  }
 }
 
 // ========== GROCERY RENDERING ==========
