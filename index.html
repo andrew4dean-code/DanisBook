@@ -329,6 +329,12 @@ body{
 .detail-info{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--text-muted)}
 .detail-info svg{width:15px;height:15px}
 
+.detail-source-link{padding:12px 20px 0}
+.detail-source-link a{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);text-decoration:none;overflow:hidden;border-radius:var(--radius-sm);padding:6px 10px;background:var(--surface-alt)}
+.detail-source-link a:hover{color:var(--accent)}
+.detail-source-link a span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-source-link a svg{width:13px;height:13px;flex-shrink:0}
+
 .detail-section{padding:20px 20px 0}
 .detail-section:last-of-type{padding-bottom:4px}
 .detail-section-divider{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -1006,6 +1012,7 @@ let recipes=loadData('rb_recipes',null);
 let grocery=loadData('rb_grocery',[]);
 let currentTab='recipes';
 let editingId=null;
+let pendingScanUrl=null;
 let selectedFiles=[];
 let confirmCallback=null;
 let currentRecipePhoto=null;
@@ -1150,6 +1157,12 @@ function openDetail(id){
         ${r.servings?`<span class="detail-info"><i data-lucide="users"></i>${esc(r.servings)} servings</span>`:''}
       </div>
     </div>
+    ${r.sourceUrl?`
+    <div class="detail-source-link">
+      <a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">
+        <i data-lucide="link"></i><span>${esc(r.sourceUrl)}</span><i data-lucide="external-link"></i>
+      </a>
+    </div>`:''}
     <div class="detail-section">
       <div class="detail-section-divider">
         <span class="detail-section-title">Ingredients</span>
@@ -1234,6 +1247,7 @@ window.editRecipe=function(id){
   editingId=id;
   const r=recipes.find(x=>x.id===id);
   if(!r)return;
+  pendingScanUrl=r.sourceUrl||null;
   $('#detailModal').classList.remove('open');
   setTimeout(()=>{
     $('#formTitle').textContent='Edit Recipe';
@@ -1263,6 +1277,7 @@ window.deleteRecipe=function(id){
 // ========== ADD/EDIT FORM ==========
 $('#addRecipeBtn').addEventListener('click',()=>{
   editingId=null;
+  pendingScanUrl=null;
   $('#formTitle').textContent='Add Recipe';
   $('#recipeForm').reset();
   $('#formSubmitBtn').textContent='Save Recipe';
@@ -1283,7 +1298,8 @@ $('#recipeForm').addEventListener('submit',e=>{
     ingredients:$('#fIngredients').value.split('\n').map(s=>s.trim()).filter(Boolean),
     instructions:$('#fInstructions').value.split('\n').map(s=>s.trim()).filter(Boolean),
     notes:$('#fNotes').value.trim(),
-    photo:currentRecipePhoto||undefined
+    photo:currentRecipePhoto||undefined,
+    sourceUrl:pendingScanUrl||undefined
   };
   if(!data.name)return;
   if(editingId){
@@ -1547,6 +1563,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
 
     // Pre-fill form
     editingId=null;
+    pendingScanUrl=null;
     $('#formTitle').textContent='Review Scanned Recipe';
     $('#fName').value=parsed.name||'';
     $('#fCategory').value=parsed.category||'Dinner';
@@ -1755,6 +1772,7 @@ async function handleInstagramScan(key){
     }
 
     editingId=null;
+    pendingScanUrl=useVideo?null:url;
     $('#formTitle').textContent='Review Instagram Recipe';
     $('#fName').value=parsed.name||'';
     $('#fCategory').value=parsed.category||'Dinner';
