@@ -360,13 +360,33 @@ body{
 .ingredient-chip-add svg{width:11px;height:11px}
 
 /* Instruction steps */
-.step-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border-light)}
+.step-item{
+  display:flex;gap:14px;padding:10px 8px;border-bottom:1px solid var(--border-light);
+  cursor:pointer;position:relative;overflow:hidden;border-radius:var(--radius-sm);
+  transition:background 0.22s ease;-webkit-tap-highlight-color:transparent;
+}
 .step-item:last-child{border-bottom:none}
+.step-item:hover{background:var(--accent-muted)}
+.step-item.step-done{background:var(--accent-light)}
+.step-item.step-done .step-num-big{opacity:0.9}
+.step-item.step-done .step-text{color:var(--accent)}
 .step-num-big{
   flex-shrink:0;font-family:var(--font-display);font-size:28px;line-height:1;
   color:var(--accent);opacity:0.35;width:32px;text-align:center;padding-top:3px;
+  transition:opacity 0.3s ease;
 }
-.step-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:7px}
+.step-text{font-size:14px;line-height:1.6;color:var(--text);padding-top:7px;transition:color 0.3s ease}
+.step-ripple{
+  position:absolute;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at center,rgba(255,255,255,0.88) 0%,rgba(196,112,90,0.38) 42%,transparent 70%);
+  box-shadow:0 0 28px rgba(196,112,90,0.45),inset 0 0 14px rgba(255,255,255,0.5);
+  transform:scale(0);animation:liquidGlass 0.7s cubic-bezier(0.22,0.61,0.36,1) forwards;
+}
+@keyframes liquidGlass{
+  0%{transform:scale(0);opacity:1;filter:blur(0px)}
+  45%{opacity:0.82;filter:blur(1.5px)}
+  100%{transform:scale(4.5);opacity:0;filter:blur(6px)}
+}
 
 .detail-notes{
   background:var(--surface-alt);border-radius:var(--radius-md);
@@ -1131,6 +1151,18 @@ function renderRecipes(){
 
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
+function toggleStep(e,el){
+  const rect=el.getBoundingClientRect();
+  const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  const size=Math.max(rect.width,rect.height)*2.2;
+  const ripple=document.createElement('span');
+  ripple.className='step-ripple';
+  ripple.style.cssText=`width:${size}px;height:${size}px;left:${x-size/2}px;top:${y-size/2}px`;
+  el.appendChild(ripple);
+  el.classList.toggle('step-done');
+  ripple.addEventListener('animationend',()=>ripple.remove());
+}
+
 $('#recipeSearch').addEventListener('input',renderRecipes);
 $$('.filter-chip').forEach(chip=>{
   chip.addEventListener('click',()=>{
@@ -1186,7 +1218,7 @@ function openDetail(id){
         <div class="detail-section-line"></div>
       </div>
       ${(r.instructions||[]).map((step,i)=>`
-        <div class="step-item">
+        <div class="step-item" onclick="toggleStep(event,this)">
           <span class="step-num-big">${i+1}</span>
           <span class="step-text">${esc(step)}</span>
         </div>
