@@ -513,6 +513,26 @@ body{
 
 .grocery-item-text{flex:1;color:var(--text)}
 
+/* ========== BATCH LIST ========== */
+.batch-family{margin-bottom:20px}
+.batch-family-title{
+  font-family:var(--font-display);font-size:15px;
+  color:var(--accent);margin-bottom:8px;
+  padding-bottom:6px;border-bottom:1px solid var(--border-light);
+  display:flex;align-items:center;gap:6px;
+}
+.batch-item{
+  display:flex;flex-direction:column;
+  padding:8px 0;font-size:14px;
+  border-bottom:1px solid var(--border-light);
+}
+.batch-item:last-child{border-bottom:none}
+.batch-item-row{display:flex;justify-content:space-between;align-items:baseline}
+.batch-item-name{color:var(--text);flex:1}
+.batch-item-qty{color:var(--accent);font-weight:600;white-space:nowrap;margin-left:12px}
+.batch-item-sources{font-size:11px;color:var(--text-faint);margin-top:2px}
+.batch-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:14px}
+
 /* ========== EMPTY STATES ========== */
 .empty-state{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -814,6 +834,7 @@ body{
   <div class="grocery-actions" id="groceryActions" style="display:none">
     <button class="btn btn-sm btn-secondary btn-icon" id="copyListBtn"><i data-lucide="copy"></i> Copy List</button>
     <button class="btn btn-sm btn-secondary btn-icon" id="shareListBtn"><i data-lucide="share"></i> Share</button>
+    <button class="btn btn-sm btn-secondary btn-icon" id="batchListBtn"><i data-lucide="layers"></i> Batch List</button>
     <button class="btn btn-sm btn-secondary btn-icon" id="clearCheckedBtn"><i data-lucide="check-circle"></i> Clear Checked</button>
     <button class="btn btn-sm btn-danger btn-icon" id="clearAllBtn"><i data-lucide="trash-2"></i> Clear All</button>
   </div>
@@ -1007,6 +1028,18 @@ body{
       <button class="btn btn-sm btn-secondary" id="confirmCancel">Cancel</button>
       <button class="btn btn-sm btn-danger" id="confirmOk">Yes, do it</button>
     </div>
+  </div>
+</div>
+
+<!-- BATCH LIST MODAL -->
+<div class="modal-overlay" id="batchModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Batch List</span>
+      <button class="modal-close" id="batchClose"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" id="batchBody"></div>
   </div>
 </div>
 
@@ -1833,6 +1866,198 @@ async function handleInstagramScan(key){
 }
 
 // ========== GROCERY RENDERING ==========
+// ========== BATCH LIST ==========
+function parseFraction(s){
+  s=s.trim();
+  const mixed=s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if(mixed)return parseInt(mixed[1])+parseInt(mixed[2])/parseInt(mixed[3]);
+  const frac=s.match(/^(\d+)\/(\d+)$/);
+  if(frac)return parseInt(frac[1])/parseInt(frac[2]);
+  const n=parseFloat(s);
+  return isNaN(n)?null:n;
+}
+
+const BATCH_UNITS=['tablespoon','tablespoons','teaspoon','teaspoons','cup','cups','tbsp','tsp',
+  'oz','ounce','ounces','lb','lbs','pound','pounds','g','kg','ml','l','liter','liters',
+  'pint','pints','quart','quarts','gallon','gallons','clove','cloves','slice','slices',
+  'piece','pieces','bunch','bunches','can','cans','package','packages','pkg','bag','bags',
+  'sprig','sprigs','stalk','stalks','head','heads','ear','ears','stick','sticks',
+  'sheet','sheets','fillet','fillets','breast','breasts','thigh','thighs'];
+
+const PREP_WORDS=/\b(fresh|dried|frozen|chopped|diced|sliced|minced|grated|shredded|peeled|halved|quartered|crushed|ground|whole|large|small|medium|extra|firmly|packed|heaping|leveled?|ripe|raw|cooked|uncooked|boneless|skinless|lean)\b/gi;
+
+function parseIngredient(text){
+  let s=text.trim();
+  // Extract leading quantity (mixed fractions, fractions, decimals, integers)
+  let quantity=null;
+  const qtyRe=/^((\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?)\s+/;
+  const qm=s.match(qtyRe);
+  if(qm){quantity=parseFraction(qm[1]);s=s.slice(qm[0].length);}
+  // Extract unit
+  let unit=null;
+  for(const u of BATCH_UNITS){
+    const ur=new RegExp('^'+u+'s?\\.?\\s+','i');
+    if(ur.test(s)){unit=u.replace(/s$/,'').toLowerCase();s=s.replace(ur,'').trim();break;}
+  }
+  // Normalize name
+  let name=s
+    .replace(/,[\s\S]*$/,'')       // drop everything after first comma
+    .replace(/\([\s\S]*?\)/g,'')   // drop parenthetical
+    .replace(PREP_WORDS,' ')
+    .replace(/\s+/g,' ')
+    .trim()
+    .toLowerCase();
+  return{quantity,unit,name,original:text};
+}
+
+const INGREDIENT_FAMILIES={
+  'Tomatoes':['tomato'],
+  'Onions & Alliums':['onion','shallot','leek','scallion','green onion','spring onion','chive'],
+  'Peppers':['bell pepper','pepper','chili','jalapeño','jalapeno','habanero','serrano','capsicum','poblano'],
+  'Mushrooms':['mushroom'],
+  'Cheese':['cheese','parmesan','mozzarella','cheddar','ricotta','feta','brie','gouda','gruyere','fontina','provolone','gorgonzola','manchego'],
+  'Milk & Cream':['milk','cream','buttermilk','half-and-half','heavy cream','whipping cream'],
+  'Flour & Starches':['flour','cornstarch','corn starch','cornmeal','breadcrumb','bread crumb','panko','arrowroot','tapioca'],
+  'Fresh Herbs':['basil','oregano','thyme','rosemary','parsley','cilantro','mint','sage','dill','tarragon','bay leaf','bay leaves','lemongrass'],
+  'Citrus':['lemon','lime','orange','grapefruit','tangerine','clementine','yuzu'],
+  'Leafy Greens':['spinach','kale','arugula','lettuce','chard','cabbage','collard','bok choy','watercress','radicchio','endive','escarole'],
+  'Root Vegetables':['carrot','potato','sweet potato','beet','turnip','parsnip','radish','yam','rutabaga','celeriac','jicama'],
+  'Garlic & Ginger':['garlic','ginger'],
+  'Stock & Broth':['stock','broth'],
+  'Oils & Fats':['olive oil','vegetable oil','coconut oil','sesame oil','avocado oil','oil','butter','ghee','lard','shortening'],
+  'Vinegar':['vinegar','balsamic'],
+  'Nuts & Seeds':['almond','walnut','pecan','cashew','peanut','pine nut','pistachio','hazelnut','macadamia','sesame seed','sesame','sunflower seed','pumpkin seed','chia seed','chia','flaxseed','flax'],
+  'Pasta & Grains':['pasta','spaghetti','penne','fettuccine','linguine','rigatoni','farfalle','orzo','rice','quinoa','oat','barley','couscous','bulgur','farro','millet','polenta','noodle'],
+  'Beans & Legumes':['black bean','kidney bean','pinto bean','cannellini bean','chickpea','garbanzo','lentil','split pea','edamame','tofu','tempeh','bean'],
+  'Poultry':['chicken','turkey','duck','quail','cornish hen'],
+  'Beef & Pork':['beef','ground beef','steak','pork','bacon','ham','sausage','salami','prosciutto','pancetta','chorizo','pepperoni','mortadella','brisket','ribs'],
+  'Seafood':['salmon','tuna','shrimp','prawn','cod','tilapia','halibut','mahi','crab','lobster','scallop','clam','mussel','oyster','anchovy','sardine','squid','octopus'],
+  'Eggs':['egg'],
+  'Dairy':['yogurt','sour cream','creme fraiche','kefir'],
+  'Sweeteners':['sugar','honey','maple syrup','agave','molasses','brown sugar','powdered sugar','confectioner'],
+  'Spices & Seasonings':['cumin','coriander','turmeric','cinnamon','nutmeg','cardamom','clove','allspice','cayenne','chili powder','curry powder','paprika','star anise','fennel seed','caraway','sumac','za\'atar','harissa','miso','soy sauce','fish sauce','worcestershire','hot sauce','sriracha','tahini','mustard'],
+  'Baking':['baking powder','baking soda','yeast','vanilla extract','vanilla','cocoa powder','chocolate chip','chocolate'],
+  'Zucchini & Squash':['zucchini','squash','butternut','acorn squash','kabocha','pumpkin'],
+  'Avocado':['avocado'],
+  'Corn':['corn','kernel'],
+  'Cucumber':['cucumber'],
+  'Asparagus':['asparagus'],
+  'Broccoli & Cauliflower':['broccoli','cauliflower'],
+  'Green Beans':['green bean','haricot vert'],
+  'Celery':['celery'],
+  'Eggplant':['eggplant','aubergine'],
+  'Artichoke':['artichoke'],
+  'Peas':['pea','snap pea','snow pea'],
+  'Apples & Pears':['apple','pear'],
+  'Berries':['strawberry','blueberry','raspberry','blackberry','cranberry','cherry'],
+  'Tropical Fruits':['banana','mango','pineapple','papaya','coconut','passion fruit','kiwi'],
+  'Stone Fruits':['peach','plum','apricot','nectarine','cherry'],
+  'Grapes & Raisins':['grape','raisin','currant'],
+};
+
+function getIngredientFamily(name){
+  // Check multi-word keywords first (sorted by length desc) then single-word
+  const allKeywords=[];
+  for(const[family,keywords]of Object.entries(INGREDIENT_FAMILIES)){
+    for(const kw of keywords){allKeywords.push({family,kw,len:kw.length});}
+  }
+  allKeywords.sort((a,b)=>b.len-a.len);
+  for(const{family,kw}of allKeywords){
+    if(name.includes(kw))return family;
+  }
+  return'Other';
+}
+
+function formatQty(qty,unit){
+  if(qty===null)return'';
+  // Convert to nice fraction display for amounts < 5
+  const fracs=[[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
+  const whole=Math.floor(qty);
+  const rem=qty-whole;
+  let fracStr='';
+  if(rem>0.01){
+    const match=fracs.find(([v])=>Math.abs(rem-v)<0.04);
+    fracStr=match?match[1]:rem.toFixed(1).replace(/^0/,'');
+  }
+  const wholeStr=whole>0?String(whole):'';
+  const qtyStr=(wholeStr+(fracStr?' '+fracStr:'')||String(qty)).trim();
+  const unitStr=unit?(' '+unit+(qty!==1&&!unit.endsWith('s')&&unit.length>2?'s':'')):'';
+  return qtyStr+unitStr;
+}
+
+function toTitleCase(s){
+  return s.replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function buildBatchList(){
+  const pending=grocery.filter(g=>!g.checked);
+  // Map from mergeKey (normalizedName+unit) → {displayName, quantity, unit, sources}
+  const merged=new Map();
+  pending.forEach(item=>{
+    const p=parseIngredient(item.text);
+    const key=p.name+'|'+(p.unit||'');
+    if(!merged.has(key)){
+      merged.set(key,{displayName:toTitleCase(p.name),quantity:p.quantity,unit:p.unit,sources:[item.recipeName],original:p.original,canSum:p.quantity!==null});
+    }else{
+      const entry=merged.get(key);
+      if(entry.canSum&&p.quantity!==null){
+        entry.quantity=(entry.quantity||0)+p.quantity;
+        // Use longer display name as it's more specific
+        if(p.name.length>entry.displayName.length)entry.displayName=toTitleCase(p.name);
+      }else{
+        entry.canSum=false;
+        entry.quantity=null;
+      }
+      if(!entry.sources.includes(item.recipeName))entry.sources.push(item.recipeName);
+    }
+  });
+  // Group by family
+  const families={};
+  for(const entry of merged.values()){
+    const fam=getIngredientFamily(entry.displayName.toLowerCase());
+    if(!families[fam])families[fam]=[];
+    families[fam].push(entry);
+  }
+  // Sort family keys alphabetically, Other last
+  const sorted=Object.keys(families).sort((a,b)=>{
+    if(a==='Other')return 1;if(b==='Other')return -1;
+    return a.localeCompare(b);
+  });
+  return{sorted,families};
+}
+
+function openBatchModal(){
+  const pending=grocery.filter(g=>!g.checked);
+  if(pending.length===0){toast('No pending items to batch');return;}
+  const{sorted,families}=buildBatchList();
+  let html='';
+  if(sorted.length===0){
+    html='<div class="batch-empty">No items to batch.</div>';
+  }else{
+    sorted.forEach(fam=>{
+      const items=families[fam];
+      html+=`<div class="batch-family">
+        <div class="batch-family-title">${esc(fam)}</div>
+        ${items.map(entry=>{
+          const qty=entry.canSum&&entry.quantity!==null?formatQty(entry.quantity,entry.unit):'';
+          const srcText=entry.sources.join(', ');
+          return`<div class="batch-item">
+            <div class="batch-item-row">
+              <span class="batch-item-name">${esc(entry.displayName)}</span>
+              ${qty?`<span class="batch-item-qty">${esc(qty)}</span>`:''}
+            </div>
+            ${!qty&&entry.original?`<div class="batch-item-sources">${esc(entry.original)}</div>`:''}
+            <div class="batch-item-sources">from: ${esc(srcText)}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    });
+  }
+  $('#batchBody').innerHTML=html;
+  $('#batchModal').classList.add('open');
+  lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+}
+
 function renderGrocery(){
   const content=$('#groceryContent');
   const empty=$('#groceryEmpty');
@@ -1921,6 +2146,10 @@ $('#clearAllBtn').addEventListener('click',()=>{
     grocery=[];saveData('rb_grocery',grocery);renderGrocery();toast('Grocery list cleared');
   });
 });
+
+$('#batchListBtn').addEventListener('click',openBatchModal);
+$('#batchClose').addEventListener('click',()=>$('#batchModal').classList.remove('open'));
+$('#batchModal').addEventListener('click',e=>{if(e.target===$('#batchModal'))$('#batchModal').classList.remove('open')});
 
 // ========== CONFIRM DIALOG ==========
 function showConfirm(title,text,onOk){
