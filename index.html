@@ -514,23 +514,20 @@ body{
 .grocery-item-text{flex:1;color:var(--text)}
 
 /* ========== BATCH LIST ========== */
-.batch-family{margin-bottom:20px}
+.batch-family{margin-bottom:28px}
 .batch-family-title{
-  font-family:var(--font-display);font-size:15px;
-  color:var(--accent);margin-bottom:8px;
-  padding-bottom:6px;border-bottom:1px solid var(--border-light);
-  display:flex;align-items:center;gap:6px;
+  font-family:var(--font-display);font-size:18px;font-weight:700;
+  color:var(--text);margin-bottom:10px;
+  padding-bottom:8px;border-bottom:2px solid var(--border);
 }
 .batch-item{
-  display:flex;flex-direction:column;
-  padding:8px 0;font-size:14px;
-  border-bottom:1px solid var(--border-light);
+  display:flex;align-items:flex-start;gap:8px;
+  padding:6px 0;font-size:15px;line-height:1.4;
 }
-.batch-item:last-child{border-bottom:none}
-.batch-item-row{display:flex;justify-content:space-between;align-items:baseline}
-.batch-item-name{color:var(--text);flex:1}
-.batch-item-qty{color:var(--accent);font-weight:600;white-space:nowrap;margin-left:12px}
-.batch-item-sources{font-size:11px;color:var(--text-faint);margin-top:2px}
+.batch-bullet{color:var(--text-muted);flex-shrink:0;padding-top:1px;font-size:16px}
+.batch-item-body{flex:1}
+.batch-item-text{color:var(--text)}
+.batch-item-sources{font-size:12px;color:var(--text-muted);font-style:italic;margin-top:1px}
 .batch-empty{text-align:center;padding:32px;color:var(--text-muted);font-size:14px}
 
 /* ========== EMPTY STATES ========== */
@@ -1877,6 +1874,31 @@ function parseFraction(s){
   return isNaN(n)?null:n;
 }
 
+// Singularize the last word of an ingredient name so "avocado"/"avocados" share the same key
+function singularizeWord(w){
+  const irregulars={
+    'tomatoes':'tomato','potatoes':'potato','avocados':'avocado','mangoes':'mango',
+    'heroes':'hero','echoes':'echo','leaves':'leaf','loaves':'loaf','halves':'half',
+    'wolves':'wolf','knives':'knife','berries':'berry','cherries':'cherry',
+    'strawberries':'strawberry','blueberries':'blueberry','raspberries':'raspberry',
+    'blackberries':'blackberry','cranberries':'cranberry','babies':'baby',
+    'cookies':'cookie','brownies':'brownie',
+  };
+  const lw=w.toLowerCase();
+  if(irregulars[lw])return irregulars[lw];
+  if(lw.endsWith('ies')&&lw.length>4)return lw.slice(0,-3)+'y';
+  if(lw.endsWith('oes')&&lw.length>4&&!['shoes','toes'].includes(lw))return lw.slice(0,-2);
+  if(/(?:ss|sh|ch|x)es$/.test(lw))return lw.slice(0,-2);
+  if(lw.endsWith('s')&&!lw.endsWith('ss')&&!lw.endsWith('us')&&!lw.endsWith('is')&&lw.length>3)return lw.slice(0,-1);
+  return lw;
+}
+function singularizeName(name){
+  const words=name.trim().split(/\s+/);
+  if(!words.length)return name;
+  words[words.length-1]=singularizeWord(words[words.length-1]);
+  return words.join(' ');
+}
+
 const BATCH_UNITS=['tablespoon','tablespoons','teaspoon','teaspoons','cup','cups','tbsp','tsp',
   'oz','ounce','ounces','lb','lbs','pound','pounds','g','kg','ml','l','liter','liters',
   'pint','pints','quart','quarts','gallon','gallons','clove','cloves','slice','slices',
@@ -1888,75 +1910,73 @@ const PREP_WORDS=/\b(fresh|dried|frozen|chopped|diced|sliced|minced|grated|shred
 
 function parseIngredient(text){
   let s=text.trim();
-  // Extract leading quantity (mixed fractions, fractions, decimals, integers)
   let quantity=null;
   const qtyRe=/^((\d+\s+)?\d+\/\d+|\d+(?:\.\d+)?)\s+/;
   const qm=s.match(qtyRe);
   if(qm){quantity=parseFraction(qm[1]);s=s.slice(qm[0].length);}
-  // Extract unit
   let unit=null;
   for(const u of BATCH_UNITS){
     const ur=new RegExp('^'+u+'s?\\.?\\s+','i');
     if(ur.test(s)){unit=u.replace(/s$/,'').toLowerCase();s=s.replace(ur,'').trim();break;}
   }
-  // Normalize name
-  let name=s
-    .replace(/,[\s\S]*$/,'')       // drop everything after first comma
-    .replace(/\([\s\S]*?\)/g,'')   // drop parenthetical
+  // Clean name and singularize for stable merge key
+  let rawName=s
+    .replace(/,[\s\S]*$/,'')
+    .replace(/\([\s\S]*?\)/g,'')
     .replace(PREP_WORDS,' ')
     .replace(/\s+/g,' ')
     .trim()
     .toLowerCase();
-  return{quantity,unit,name,original:text};
+  const mergeKey=singularizeName(rawName)+'|'+(unit||'');
+  return{quantity,unit,rawName,mergeKey,original:text};
 }
 
 const INGREDIENT_FAMILIES={
-  'Tomatoes':['tomato'],
-  'Onions & Alliums':['onion','shallot','leek','scallion','green onion','spring onion','chive'],
-  'Peppers':['bell pepper','pepper','chili','jalapeño','jalapeno','habanero','serrano','capsicum','poblano'],
-  'Mushrooms':['mushroom'],
-  'Cheese':['cheese','parmesan','mozzarella','cheddar','ricotta','feta','brie','gouda','gruyere','fontina','provolone','gorgonzola','manchego'],
-  'Milk & Cream':['milk','cream','buttermilk','half-and-half','heavy cream','whipping cream'],
-  'Flour & Starches':['flour','cornstarch','corn starch','cornmeal','breadcrumb','bread crumb','panko','arrowroot','tapioca'],
-  'Fresh Herbs':['basil','oregano','thyme','rosemary','parsley','cilantro','mint','sage','dill','tarragon','bay leaf','bay leaves','lemongrass'],
-  'Citrus':['lemon','lime','orange','grapefruit','tangerine','clementine','yuzu'],
-  'Leafy Greens':['spinach','kale','arugula','lettuce','chard','cabbage','collard','bok choy','watercress','radicchio','endive','escarole'],
-  'Root Vegetables':['carrot','potato','sweet potato','beet','turnip','parsnip','radish','yam','rutabaga','celeriac','jicama'],
+  'Produce — Avocado':['avocado'],
+  'Produce — Tomatoes':['tomato'],
+  'Produce — Onions & Alliums':['onion','shallot','leek','scallion','green onion','spring onion','chive'],
+  'Produce — Peppers':['bell pepper','pepper','chili','jalapeño','jalapeno','habanero','serrano','capsicum','poblano'],
+  'Produce — Leafy Greens':['spinach','kale','arugula','lettuce','chard','cabbage','collard','bok choy','watercress','radicchio'],
+  'Produce — Root Vegetables':['carrot','potato','sweet potato','beet','turnip','parsnip','radish','yam','rutabaga','celeriac','jicama'],
+  'Produce — Mushrooms':['mushroom'],
+  'Produce — Zucchini & Squash':['zucchini','squash','butternut','acorn squash','kabocha','pumpkin'],
+  'Produce — Corn':['corn','kernel'],
+  'Produce — Cucumber':['cucumber'],
+  'Produce — Asparagus':['asparagus'],
+  'Produce — Broccoli & Cauliflower':['broccoli','cauliflower'],
+  'Produce — Green Beans':['green bean','haricot vert'],
+  'Produce — Celery':['celery'],
+  'Produce — Eggplant':['eggplant','aubergine'],
+  'Produce — Peas':['pea','snap pea','snow pea'],
+  'Produce — Artichoke':['artichoke'],
+  'Fruit — Citrus':['lemon','lime','orange','grapefruit','tangerine','clementine','yuzu'],
+  'Fruit — Berries':['strawberry','blueberry','raspberry','blackberry','cranberry'],
+  'Fruit — Apples & Pears':['apple','pear'],
+  'Fruit — Stone Fruits':['peach','plum','apricot','nectarine','cherry'],
+  'Fruit — Tropical':['banana','mango','pineapple','papaya','coconut','passion fruit','kiwi'],
+  'Fruit — Grapes & Raisins':['grape','raisin','currant'],
+  'Herbs — Fresh':['basil','oregano','thyme','rosemary','parsley','cilantro','mint','sage','dill','tarragon','bay leaf','bay leaves','lemongrass'],
   'Garlic & Ginger':['garlic','ginger'],
-  'Stock & Broth':['stock','broth'],
-  'Oils & Fats':['olive oil','vegetable oil','coconut oil','sesame oil','avocado oil','oil','butter','ghee','lard','shortening'],
-  'Vinegar':['vinegar','balsamic'],
-  'Nuts & Seeds':['almond','walnut','pecan','cashew','peanut','pine nut','pistachio','hazelnut','macadamia','sesame seed','sesame','sunflower seed','pumpkin seed','chia seed','chia','flaxseed','flax'],
-  'Pasta & Grains':['pasta','spaghetti','penne','fettuccine','linguine','rigatoni','farfalle','orzo','rice','quinoa','oat','barley','couscous','bulgur','farro','millet','polenta','noodle'],
-  'Beans & Legumes':['black bean','kidney bean','pinto bean','cannellini bean','chickpea','garbanzo','lentil','split pea','edamame','tofu','tempeh','bean'],
-  'Poultry':['chicken','turkey','duck','quail','cornish hen'],
-  'Beef & Pork':['beef','ground beef','steak','pork','bacon','ham','sausage','salami','prosciutto','pancetta','chorizo','pepperoni','mortadella','brisket','ribs'],
+  'Meat — Poultry':['chicken','turkey','duck','quail','cornish hen'],
+  'Meat — Beef & Pork':['beef','ground beef','steak','pork','bacon','ham','sausage','salami','prosciutto','pancetta','chorizo','pepperoni','mortadella','brisket','ribs'],
   'Seafood':['salmon','tuna','shrimp','prawn','cod','tilapia','halibut','mahi','crab','lobster','scallop','clam','mussel','oyster','anchovy','sardine','squid','octopus'],
-  'Eggs':['egg'],
-  'Dairy':['yogurt','sour cream','creme fraiche','kefir'],
-  'Sweeteners':['sugar','honey','maple syrup','agave','molasses','brown sugar','powdered sugar','confectioner'],
-  'Spices & Seasonings':['cumin','coriander','turmeric','cinnamon','nutmeg','cardamom','clove','allspice','cayenne','chili powder','curry powder','paprika','star anise','fennel seed','caraway','sumac','za\'atar','harissa','miso','soy sauce','fish sauce','worcestershire','hot sauce','sriracha','tahini','mustard'],
+  'Dairy — Eggs':['egg'],
+  'Dairy — Cheese':['cheese','parmesan','mozzarella','cheddar','ricotta','feta','brie','gouda','gruyere','fontina','provolone','gorgonzola','manchego'],
+  'Dairy — Milk & Cream':['milk','cream','buttermilk','half-and-half','heavy cream','whipping cream'],
+  'Dairy — Yogurt & Other':['yogurt','sour cream','creme fraiche','kefir'],
+  'Pantry — Pasta & Grains':['pasta','spaghetti','penne','fettuccine','linguine','rigatoni','farfalle','orzo','rice','quinoa','oat','barley','couscous','bulgur','farro','millet','polenta','noodle'],
+  'Pantry — Beans & Legumes':['black bean','kidney bean','pinto bean','cannellini bean','chickpea','garbanzo','lentil','split pea','edamame','tofu','tempeh','bean'],
+  'Pantry — Flour & Starches':['flour','cornstarch','corn starch','cornmeal','breadcrumb','bread crumb','panko','arrowroot','tapioca'],
+  'Pantry — Nuts & Seeds':['almond','walnut','pecan','cashew','peanut','pine nut','pistachio','hazelnut','macadamia','sesame seed','sesame','sunflower seed','pumpkin seed','chia seed','chia','flaxseed','flax'],
+  'Pantry — Canned & Stock':['stock','broth','canned tomato','diced tomato','tomato paste','tomato sauce'],
+  'Pantry — Oils & Fats':['olive oil','vegetable oil','coconut oil','sesame oil','avocado oil','oil','butter','ghee','lard','shortening'],
+  'Pantry — Vinegar':['vinegar','balsamic'],
+  'Pantry — Sweeteners':['sugar','honey','maple syrup','agave','molasses','brown sugar','powdered sugar','confectioner'],
+  'Pantry — Spices & Seasonings':['cumin','coriander','turmeric','cinnamon','nutmeg','cardamom','clove','allspice','cayenne','chili powder','curry powder','paprika','star anise','fennel seed','caraway','sumac','harissa','miso','soy sauce','fish sauce','worcestershire','hot sauce','sriracha','tahini','mustard'],
   'Baking':['baking powder','baking soda','yeast','vanilla extract','vanilla','cocoa powder','chocolate chip','chocolate'],
-  'Zucchini & Squash':['zucchini','squash','butternut','acorn squash','kabocha','pumpkin'],
-  'Avocado':['avocado'],
-  'Corn':['corn','kernel'],
-  'Cucumber':['cucumber'],
-  'Asparagus':['asparagus'],
-  'Broccoli & Cauliflower':['broccoli','cauliflower'],
-  'Green Beans':['green bean','haricot vert'],
-  'Celery':['celery'],
-  'Eggplant':['eggplant','aubergine'],
-  'Artichoke':['artichoke'],
-  'Peas':['pea','snap pea','snow pea'],
-  'Apples & Pears':['apple','pear'],
-  'Berries':['strawberry','blueberry','raspberry','blackberry','cranberry','cherry'],
-  'Tropical Fruits':['banana','mango','pineapple','papaya','coconut','passion fruit','kiwi'],
-  'Stone Fruits':['peach','plum','apricot','nectarine','cherry'],
-  'Grapes & Raisins':['grape','raisin','currant'],
 };
 
 function getIngredientFamily(name){
-  // Check multi-word keywords first (sorted by length desc) then single-word
   const allKeywords=[];
   for(const[family,keywords]of Object.entries(INGREDIENT_FAMILIES)){
     for(const kw of keywords){allKeywords.push({family,kw,len:kw.length});}
@@ -1970,7 +1990,6 @@ function getIngredientFamily(name){
 
 function formatQty(qty,unit){
   if(qty===null)return'';
-  // Convert to nice fraction display for amounts < 5
   const fracs=[[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
   const whole=Math.floor(qty);
   const rem=qty-whole;
@@ -1991,24 +2010,31 @@ function toTitleCase(s){
 
 function buildBatchList(){
   const pending=grocery.filter(g=>!g.checked);
-  // Map from mergeKey (normalizedName+unit) → {displayName, quantity, unit, sources}
+  // Map mergeKey → {displayName, totalQty, unit, contributions:[{recipeName,qty}], canSum, original}
   const merged=new Map();
   pending.forEach(item=>{
     const p=parseIngredient(item.text);
-    const key=p.name+'|'+(p.unit||'');
-    if(!merged.has(key)){
-      merged.set(key,{displayName:toTitleCase(p.name),quantity:p.quantity,unit:p.unit,sources:[item.recipeName],original:p.original,canSum:p.quantity!==null});
+    const{mergeKey,rawName,quantity,unit}=p;
+    if(!merged.has(mergeKey)){
+      merged.set(mergeKey,{
+        displayName:toTitleCase(singularizeName(rawName)),
+        totalQty:quantity,unit,
+        contributions:quantity!==null?[{recipeName:item.recipeName,qty:quantity}]:[],
+        sources:[item.recipeName],
+        canSum:quantity!==null,
+        original:p.original,
+      });
     }else{
-      const entry=merged.get(key);
-      if(entry.canSum&&p.quantity!==null){
-        entry.quantity=(entry.quantity||0)+p.quantity;
-        // Use longer display name as it's more specific
-        if(p.name.length>entry.displayName.length)entry.displayName=toTitleCase(p.name);
+      const e=merged.get(mergeKey);
+      // Use more descriptive name (longer raw name before singularization)
+      if(rawName.length>e.displayName.length)e.displayName=toTitleCase(singularizeName(rawName));
+      if(e.canSum&&quantity!==null){
+        e.totalQty=(e.totalQty||0)+quantity;
+        e.contributions.push({recipeName:item.recipeName,qty:quantity});
       }else{
-        entry.canSum=false;
-        entry.quantity=null;
+        e.canSum=false;e.totalQty=null;
       }
-      if(!entry.sources.includes(item.recipeName))entry.sources.push(item.recipeName);
+      if(!e.sources.includes(item.recipeName))e.sources.push(item.recipeName);
     }
   });
   // Group by family
@@ -2018,7 +2044,6 @@ function buildBatchList(){
     if(!families[fam])families[fam]=[];
     families[fam].push(entry);
   }
-  // Sort family keys alphabetically, Other last
   const sorted=Object.keys(families).sort((a,b)=>{
     if(a==='Other')return 1;if(b==='Other')return -1;
     return a.localeCompare(b);
@@ -2036,18 +2061,26 @@ function openBatchModal(){
   }else{
     sorted.forEach(fam=>{
       const items=families[fam];
+      // Strip "Pantry — " / "Produce — " / etc. prefix for display
+      const displayFam=fam.replace(/^[^—]+—\s*/,'');
       html+=`<div class="batch-family">
-        <div class="batch-family-title">${esc(fam)}</div>
+        <div class="batch-family-title">${esc(displayFam||fam)}</div>
         ${items.map(entry=>{
-          const qty=entry.canSum&&entry.quantity!==null?formatQty(entry.quantity,entry.unit):'';
-          const srcText=entry.sources.join(', ');
+          const totalFmt=entry.canSum&&entry.totalQty!==null?formatQty(entry.totalQty,entry.unit):'';
+          // Build source breakdown only when multiple recipes contributed
+          let sourceNote='';
+          if(entry.canSum&&entry.contributions.length>1){
+            sourceNote=entry.contributions.map(c=>formatQty(c.qty,entry.unit)+' from '+c.recipeName).join(' + ');
+          }else if(!entry.canSum&&entry.sources.length){
+            sourceNote=entry.sources.join(', ');
+          }
+          const lineText=totalFmt?totalFmt+' '+entry.displayName:entry.original;
           return`<div class="batch-item">
-            <div class="batch-item-row">
-              <span class="batch-item-name">${esc(entry.displayName)}</span>
-              ${qty?`<span class="batch-item-qty">${esc(qty)}</span>`:''}
+            <span class="batch-bullet">•</span>
+            <div class="batch-item-body">
+              <div class="batch-item-text">${esc(lineText)}</div>
+              ${sourceNote?`<div class="batch-item-sources">${esc(sourceNote)}</div>`:''}
             </div>
-            ${!qty&&entry.original?`<div class="batch-item-sources">${esc(entry.original)}</div>`:''}
-            <div class="batch-item-sources">from: ${esc(srcText)}</div>
           </div>`;
         }).join('')}
       </div>`;
