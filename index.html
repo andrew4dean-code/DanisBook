@@ -1391,11 +1391,24 @@ $('#recipePhotoUpload').addEventListener('click',e=>{
   $('#recipePhotoInput').click();
 });
 
+async function uploadThumbnail(dataUrl){
+  try{
+    const r=await fetch('/api/thumbnail',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({data:dataUrl,mimeType:'image/jpeg'})
+    });
+    if(r.ok){const {url}=await r.json();return url;}
+  }catch(_){}
+  return dataUrl; // fallback: keep base64 locally
+}
+
 $('#recipePhotoInput').addEventListener('change',async e=>{
   const file=e.target.files[0];
   if(!file)return;
   const dataUrl=await compressImage(file);
-  setRecipePhotoPreview(dataUrl);
+  const photoUrl=await uploadThumbnail(dataUrl);
+  setRecipePhotoPreview(photoUrl);
 });
 
 $('#recipePhotoRemoveBtn').addEventListener('click',e=>{
