@@ -4,11 +4,12 @@ const { Pool } = require('pg');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
@@ -37,6 +38,14 @@ async function initDB() {
       code        TEXT PRIMARY KEY,
       data        JSONB NOT NULL,
       updated_at  TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS thumbnails (
+      id          TEXT PRIMARY KEY,
+      data        TEXT NOT NULL,
+      mime_type   TEXT NOT NULL DEFAULT 'image/jpeg',
+      created_at  TIMESTAMP DEFAULT NOW()
     )
   `);
   console.log('Database ready.');
@@ -80,6 +89,44 @@ app.post('/api/sync/:code', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('Sync POST error:', e.message);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// ── API: Thumbnails — upload ──────────────────────────────────────────────────
+app.post('/api/thumbnail', async (req, res) => {
+  const { data, mimeType } = req.body || {};
+  if (!data || !data.startsWith('data:')) return res.status(400).json({ error: 'Missing or invalid image data' });
+  if (!pool) return res.status(503).json({ error: 'No database configured' });
+  const id = crypto.randomUUID();
+  const mime = mimeType || 'image/jpeg';
+  try {
+    await pool.query(
+      'INSERT INTO thumbnails (id, data, mime_type) VALUES ($1, $2, $3)',
+      [id, data, mime]
+    );
+    res.json({ id, url: `/api/thumbnail/${id}` });
+  } catch (e) {
+    console.error('Thumbnail upload error:', e.message);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// ── API: Thumbnails — serve ───────────────────────────────────────────────────
+app.get('/api/thumbnail/:id', async (req, res) => {
+  if (!pool) return res.status(503).json({ error: 'No database configured' });
+  try {
+    const result = await pool.query('SELECT data, mime_type FROM thumbnails WHERE id = $1', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+    const { data, mime_type } = result.rows[0];
+    // data is a data URL like "data:image/jpeg;base64,..."
+    const base64 = data.replace(/^data:[^;]+;base64,/, '');
+    const buf = Buffer.from(base64, 'base64');
+    res.setHeader('Content-Type', mime_type);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(buf);
+  } catch (e) {
+    console.error('Thumbnail fetch error:', e.message);
     res.status(500).json({ error: 'db error' });
   }
 });
