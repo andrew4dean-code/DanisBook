@@ -760,18 +760,15 @@ body{
   <div class="scan-section" id="scanUploadSection">
     <!-- Mode Toggle -->
     <div class="scan-mode-toggle">
-      <button class="scan-mode-btn active" data-mode="scan">
-        <i data-lucide="scan-line"></i> Scan a Recipe
-      </button>
-      <button class="scan-mode-btn" data-mode="identify">
-        <i data-lucide="utensils"></i> Identify a Dish
+      <button class="scan-mode-btn active" data-mode="identify">
+        <i data-lucide="scan-eye"></i> Identify
       </button>
       <button class="scan-mode-btn" data-mode="instagram">
         <i data-lucide="instagram"></i> Instagram
       </button>
     </div>
-    <div class="scan-section-title" id="scanSectionTitle">Upload Recipe Photos</div>
-    <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a recipe from a cookbook, website, or handwritten card.</div>
+    <div class="scan-section-title" id="scanSectionTitle">Snap or Scan</div>
+    <div class="scan-section-desc" id="scanSectionDesc">Take a photo of a dish to identify it, or scan a recipe from a book or card.</div>
     <div class="upload-zone" id="uploadZone">
       <div class="upload-zone-icon"><i data-lucide="image-plus"></i></div>
       <div class="upload-zone-text">Tap to select photos</div>
@@ -800,7 +797,7 @@ body{
     <div class="preview-grid" id="previewGrid"></div>
     <div style="margin-top:16px">
       <button class="btn btn-primary btn-block btn-icon" id="scanBtn" disabled>
-        <i data-lucide="scan-line"></i> <span id="scanBtnText">Scan Recipe</span>
+        <i data-lucide="scan-eye"></i> <span id="scanBtnText">Identify</span>
       </button>
     </div>
     <div class="scan-error" id="scanError" style="display:none"></div>
@@ -808,7 +805,7 @@ body{
 
   <div class="scan-loading" id="scanLoading" style="display:none">
     <div class="vine-canvas" id="vineCanvas"></div>
-    <div class="scan-loading-text" id="scanLoadingText">Reading your recipe...</div>
+    <div class="scan-loading-text" id="scanLoadingText">Identifying...</div>
   </div>
 </div>
 
@@ -1407,20 +1404,13 @@ $('#recipePhotoRemoveBtn').addEventListener('click',e=>{
 });
 
 // ========== SCAN ==========
-let scanMode='scan';
+let scanMode='identify';
 $$('.scan-mode-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     scanMode=btn.dataset.mode;
     $$('.scan-mode-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    if(scanMode==='identify'){
-      $('#scanSectionTitle').textContent='Snap a Dish';
-      $('#scanSectionDesc').textContent='Take a photo of any meal and we will try to figure out what it is and how to make it.';
-      $('#scanBtnText').textContent='Identify Dish';
-      $('#uploadZone').style.display='block';
-      $('#instagramInputSection').style.display='none';
-      $('#scanBtn').disabled=selectedFiles.length===0;
-    }else if(scanMode==='instagram'){
+    if(scanMode==='instagram'){
       $('#scanSectionTitle').textContent='From Instagram';
       $('#scanSectionDesc').textContent='Extract a recipe from a post caption or a downloaded Reel.';
       $('#scanBtnText').textContent='Get Recipe';
@@ -1429,9 +1419,9 @@ $$('.scan-mode-btn').forEach(btn=>{
       $('#scanError').style.display='none';
       updateInstagramBtn();
     }else{
-      $('#scanSectionTitle').textContent='Upload Recipe Photos';
-      $('#scanSectionDesc').textContent='Take a photo of a recipe from a cookbook, website, or handwritten card.';
-      $('#scanBtnText').textContent='Scan Recipe';
+      $('#scanSectionTitle').textContent='Snap or Scan';
+      $('#scanSectionDesc').textContent='Take a photo of a dish to identify it, or scan a recipe from a book or card.';
+      $('#scanBtnText').textContent='Identify';
       $('#uploadZone').style.display='block';
       $('#instagramInputSection').style.display='none';
       $('#scanBtn').disabled=selectedFiles.length===0;
@@ -1509,7 +1499,7 @@ $('#scanBtn').addEventListener('click',async()=>{
   $('#scanError').style.display='none';
   $('#scanUploadSection').style.display='none';
   $('#scanLoading').style.display='flex';
-  $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
+  $('#scanLoadingText').textContent='Identifying...';
   createVines();
 
   try{
@@ -1519,31 +1509,22 @@ $('#scanBtn').addEventListener('click',async()=>{
       parts.push({inline_data:{mime_type:file.type,data:base64}});
     }
 
-    const scanPrompt=`Look at this recipe image and extract the recipe information. Return a JSON object with exactly these fields:
+    const identifyPrompt=`Look at this image. It may be a photo of a dish or meal, or it may show a written or printed recipe.
+- If it is a food or dish photo: identify what the food is and create a complete recipe to recreate it at home with specific ingredients and measurements.
+- If it shows a written recipe: extract the recipe information exactly as shown.
+Return a JSON object with exactly these fields:
 {
-  "name": "recipe name",
+  "name": "name of the dish or recipe",
   "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
   "time": "cook time like 30 min",
   "servings": "number of servings like 4",
-  "ingredients": ["ingredient 1", "ingredient 2"],
+  "ingredients": ["ingredient 1 with measurement", "ingredient 2 with measurement"],
   "instructions": ["step 1", "step 2"],
   "notes": "any tips or notes, or empty string"
 }
 Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
 
-    const identifyPrompt=`Look at this photo of a dish or meal. Identify what the food is, then create a complete recipe to recreate it at home. Be specific with ingredients and measurements. Return a JSON object with exactly these fields:
-{
-  "name": "name of the dish",
-  "category": "one of: Breakfast, Lunch, Dinner, Dessert, Snack",
-  "time": "estimated cook time like 30 min",
-  "servings": "number of servings like 4",
-  "ingredients": ["ingredient 1 with measurement", "ingredient 2 with measurement"],
-  "instructions": ["step 1", "step 2"],
-  "notes": "what you identified in the photo and any tips for recreating it"
-}
-Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
-
-    parts.push({text:scanMode==='identify'?identifyPrompt:scanPrompt});
+    parts.push({text:identifyPrompt});
 
     // Model fallback chain: try each model, fall back on quota/rate errors
     const models=['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash'];
@@ -1560,7 +1541,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
           const wait=8;
           $('#scanLoadingText').textContent='Rate limited, retrying...';
           await new Promise(r=>setTimeout(r,wait*1000));
-          $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
+          $('#scanLoadingText').textContent='Identifying...';
           continue;
         }
         if(resp.status===429){break;} // try next model
@@ -1582,7 +1563,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
       // If this model failed with 429, try next model
       $('#scanLoadingText').textContent='Trying another model...';
       await new Promise(r=>setTimeout(r,500));
-      $('#scanLoadingText').textContent=scanMode==='identify'?'Identifying your dish...':'Reading your recipe...';
+      $('#scanLoadingText').textContent='Identifying...';
     }
     if(!data)throw new Error('All models are rate limited. Please try again in a few minutes.');
     const text=data?.candidates?.[0]?.content?.parts?.[0]?.text||'';
@@ -1610,7 +1591,7 @@ Return ONLY valid JSON, no markdown, no code fences, no extra text.`;
       $('#scanLoading').style.display='none';
       $('#scanUploadSection').style.display='block';
       $('#formModal').classList.add('open');
-      toast(scanMode==='identify'?'Dish identified successfully':'Recipe scanned successfully');
+      toast('Recipe identified successfully');
     });
     selectedFiles=[];
     $('#previewGrid').innerHTML='';
