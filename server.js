@@ -6,10 +6,36 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 
+// Lightweight .env loader — avoids a dotenv dependency. Populates
+// process.env from a sibling .env file if present. Hosting platforms
+// that inject env vars natively (Render, Fly, etc.) are unaffected.
+(function loadDotEnv() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const eq = line.indexOf('=');
+      if (eq === -1) continue;
+      const k = line.slice(0, eq).trim();
+      let v = line.slice(eq + 1).trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      if (!(k in process.env)) process.env[k] = v;
+    }
+  } catch (e) { /* non-fatal */ }
+})();
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+if (!GEMINI_API_KEY) console.warn('GEMINI_API_KEY not set — scan endpoints will return 503.');
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
@@ -131,12 +157,125 @@ app.get('/api/thumbnail/:id', async (req, res) => {
   }
 });
 
+// ── Gemini helpers ────────────────────────────────────────────────────────────
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
+
+async function geminiGenerate({ contents, tools, models }) {
+  const tryModels = Array.isArray(models) && models.length ? models : ['gemini-2.5-flash', 'gemini-2.0-flash'];
+  let lastErr = null;
+  for (const model of tryModels) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const resp = await fetch(`${GEMINI_BASE}/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, ...(tools ? { tools } : {}) })
+      });
+      if (resp.status === 429) {
+        if (attempt === 0) { await new Promise(r => setTimeout(r, 6000)); continue; }
+        lastErr = new Error('rate_limited'); break;
+      }
+      if (!resp.ok) {
+        const e = await resp.json().catch(() => ({}));
+        const msg = e.error?.message || `Gemini error (${resp.status})`;
+        lastErr = new Error(msg);
+        if (resp.status === 403 || resp.status === 400) throw lastErr;
+        break;
+      }
+      const data = await resp.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      return { text };
+    }
+  }
+  throw lastErr || new Error('All models failed.');
+}
+
+// Proxy: generateContent. Server holds the key.
+app.post('/api/gemini/generate', async (req, res) => {
+  if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Server not configured.' });
+  const { contents, tools, models } = req.body || {};
+  if (!contents) return res.status(400).json({ error: 'Missing contents.' });
+  try {
+    const { text } = await geminiGenerate({ contents, tools, models });
+    res.json({ text });
+  } catch (err) {
+    res.status(422).json({ error: err.message });
+  }
+});
+
+// Proxy: upload raw video/file to Gemini File API and wait for ACTIVE.
+// Body is the raw file bytes. Client sets Content-Type to the real mime.
+app.post('/api/gemini/upload-file',
+  express.raw({ type: ['video/*', 'image/*', 'application/octet-stream'], limit: '200mb' }),
+  async (req, res) => {
+    if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Server not configured.' });
+    const mimeType = req.headers['content-type'] || 'application/octet-stream';
+    const buf = req.body;
+    if (!Buffer.isBuffer(buf) || !buf.length) return res.status(400).json({ error: 'Empty body.' });
+
+    let geminiFileName = null;
+    try {
+      const separator = `boundary_${Date.now()}`;
+      const metaJson = JSON.stringify({ file: { display_name: `upload_${Date.now()}` } });
+      const body = Buffer.concat([
+        Buffer.from(`--${separator}\r\nContent-Type: application/json\r\n\r\n${metaJson}\r\n`, 'utf8'),
+        Buffer.from(`--${separator}\r\nContent-Type: ${mimeType}\r\n\r\n`, 'utf8'),
+        buf,
+        Buffer.from(`\r\n--${separator}--`, 'utf8')
+      ]);
+      const up = await fetch(`${GEMINI_BASE}/upload/v1beta/files?uploadType=multipart&key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': `multipart/related; boundary=${separator}`, 'X-Goog-Upload-Protocol': 'multipart' },
+        body
+      });
+      if (!up.ok) {
+        const e = await up.json().catch(() => ({}));
+        throw new Error(e.error?.message || `Upload failed (${up.status})`);
+      }
+      const uj = await up.json();
+      geminiFileName = uj.file?.name;
+      const fileUri = uj.file?.uri;
+      if (!geminiFileName || !fileUri) throw new Error('Upload response missing file info.');
+
+      // Poll until ACTIVE
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const pr = await fetch(`${GEMINI_BASE}/v1beta/${geminiFileName}?key=${GEMINI_API_KEY}`);
+        if (!pr.ok) break;
+        const pd = await pr.json();
+        if (pd.state === 'ACTIVE') return res.json({ fileName: geminiFileName, fileUri, mimeType });
+        if (pd.state === 'FAILED') throw new Error('Gemini processing failed.');
+      }
+      throw new Error('Gemini processing timed out.');
+    } catch (err) {
+      if (geminiFileName) {
+        fetch(`${GEMINI_BASE}/v1beta/${geminiFileName}?key=${GEMINI_API_KEY}`, { method: 'DELETE' }).catch(() => {});
+      }
+      res.status(422).json({ error: err.message });
+    }
+  }
+);
+
+// Proxy: delete an uploaded Gemini file.
+app.delete('/api/gemini/file', async (req, res) => {
+  if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Server not configured.' });
+  const name = (req.query.name || '').toString();
+  if (!name.startsWith('files/')) return res.status(400).json({ error: 'Bad file name.' });
+  try {
+    await fetch(`${GEMINI_BASE}/v1beta/${name}?key=${GEMINI_API_KEY}`, { method: 'DELETE' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.json({ ok: false });
+  }
+});
+
 // ── API: Instagram video recipe extraction ────────────────────────────────────
 // Downloads the Instagram video server-side via yt-dlp, uploads to Gemini File
-// API with the user's key, extracts the recipe, then deletes everything.
+// API with the server's key, extracts the recipe, then deletes everything.
 app.post('/api/instagram-video', async (req, res) => {
-  const { url, apiKey } = req.body || {};
-  if (!url || !apiKey) return res.status(400).json({ error: 'Missing url or apiKey' });
+  if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Server not configured.' });
+  const apiKey = GEMINI_API_KEY;
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'Missing url' });
   if (!/instagram\.com/i.test(url)) return res.status(400).json({ error: 'Not an Instagram URL' });
 
   const prefix = `ig_${Date.now()}_`;
