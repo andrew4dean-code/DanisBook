@@ -2691,7 +2691,7 @@ function renderPlanner() {
       label.textContent = `${days[0].toLocaleDateString('en-US',opts)} – ${days[6].toLocaleDateString('en-US',opts)}`;
     }
   }
-  if (nextBtn) nextBtn.disabled = plannerWeekOffset >= 0;
+  if (nextBtn) nextBtn.disabled = false;
 
   // Auto-expand today (only once per week view, so user toggles are respected)
   if (plannerAutoExpandedForOffset !== plannerWeekOffset) {
@@ -2947,7 +2947,8 @@ document.getElementById('plannerPrev')?.addEventListener('click', () => {
   renderPlanner();
 });
 document.getElementById('plannerNext')?.addEventListener('click', () => {
-  if (plannerWeekOffset < 0) { plannerWeekOffset++; renderPlanner(); }
+  plannerWeekOffset++;
+  renderPlanner();
 });
 
 // ========== VERSION CHECK ==========
