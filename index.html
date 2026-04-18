@@ -754,20 +754,11 @@ body{
 }
 .star-btn.filled{color:#f5a623}
 .star-btn.animating{animation:starPop 0.675s ease forwards}
-.star-btn.animating-final{animation:starPopFinal 0.675s ease forwards}
 @keyframes starPop{
   0%{transform:scale(1) rotate(0deg);filter:drop-shadow(0 0 0px gold)}
   30%{transform:scale(1.6) rotate(180deg);filter:drop-shadow(0 0 10px gold)}
   60%{transform:scale(0.9) rotate(300deg);filter:drop-shadow(0 0 6px gold)}
   100%{transform:scale(1) rotate(360deg);filter:drop-shadow(0 0 4px gold)}
-}
-@keyframes starPopFinal{
-  0%  {transform:scale(1) rotate(0deg);filter:drop-shadow(0 0 0px gold)}
-  30% {transform:scale(1.6) rotate(180deg);filter:drop-shadow(0 0 10px gold)}
-  60% {transform:scale(0.9) rotate(300deg);filter:drop-shadow(0 0 6px gold)}
-  75% {transform:scale(1) rotate(360deg);filter:drop-shadow(0 0 4px gold)}
-  85% {transform:scale(3);filter:drop-shadow(0 0 18px gold)}
-  100%{transform:scale(1);filter:drop-shadow(0 0 4px gold)}
 }
 .planner-meal-remove{
   position:absolute;top:5px;right:5px;
@@ -2744,15 +2735,13 @@ function setMealRating(dateKey, entryId, stars) {
     btn.classList.toggle('filled', s <= stars);
     if (s <= stars) {
       const delay = (s - 1) * 120; // 120ms between each star
-      const isFinal = s === stars;
-      const cls = isFinal ? 'animating-final' : 'animating';
-      btn.classList.remove('animating', 'animating-final');
+      btn.classList.remove('animating');
       btn.style.animationDelay = '';
       void btn.offsetWidth;
       btn.style.animationDelay = `${delay}ms`;
-      btn.classList.add(cls);
+      btn.classList.add('animating');
       btn.addEventListener('animationend', () => {
-        btn.classList.remove('animating', 'animating-final');
+        btn.classList.remove('animating');
         btn.style.animationDelay = '';
       }, {once:true});
     }
