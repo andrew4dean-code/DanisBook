@@ -1036,7 +1036,7 @@ body{
         <i data-lucide="scan-eye"></i> Identify
       </button>
       <button class="scan-mode-btn" data-mode="instagram">
-        <i data-lucide="instagram"></i> Instagram
+        <i data-lucide="clapperboard"></i> Instagram
       </button>
     </div>
     <div class="scan-section-title" id="scanSectionTitle">Snap or Scan</div>
@@ -1899,7 +1899,7 @@ async function deleteGeminiFile(fileName){
 async function handleInstagramScan(){
   const url=normalizeInstagramUrl($('#instagramUrl').value);
   const useVideo=selectedVideo!==null;
-  if(!url&&!useVideo)return;
+  if(!url&&!useVideo){toast('Paste an Instagram link or upload a video first.');return;}
 
   $('#scanError').style.display='none';
   $('#scanUploadSection').style.display='none';
