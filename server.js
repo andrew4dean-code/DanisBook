@@ -440,10 +440,8 @@ app.post('/api/instagram-video', async (req, res) => {
   let geminiFileName = null;
 
   try {
-    // 1. Download video with yt-dlp (local binary from postinstall, or system)
-    const ytdlp = fs.existsSync(path.join(__dirname, 'yt-dlp'))
-      ? path.join(__dirname, 'yt-dlp')
-      : 'yt-dlp';
+    // 1. Download video with yt-dlp (system binary installed by Dockerfile)
+    const ytdlp = 'yt-dlp';
     await new Promise((resolve, reject) => {
       execFile(ytdlp, [
         '-o', outputTemplate,
