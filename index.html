@@ -753,7 +753,7 @@ body{
   font-size:16px;line-height:1;color:#ccc;transition:color 0.15s;
 }
 .star-btn.filled{color:#f5a623}
-.star-btn.animating{animation:starPop 0.5s ease forwards}
+.star-btn.animating{animation:starPop 0.45s ease forwards}
 @keyframes starPop{
   0%{transform:scale(1) rotate(0deg);filter:drop-shadow(0 0 0px gold)}
   30%{transform:scale(1.6) rotate(180deg);filter:drop-shadow(0 0 10px gold)}
@@ -2644,7 +2644,6 @@ function fmtPlannerKey(d) {
 
 function savePlannerData() {
   saveData('rb_planner', planner);
-  autoSync();
 }
 
 function renderPlanner() {
@@ -2735,10 +2734,16 @@ function setMealRating(dateKey, entryId, stars) {
     const s = parseInt(btn.dataset.star);
     btn.classList.toggle('filled', s <= stars);
     if (s <= stars) {
+      const delay = (s - 1) * 80; // 80ms between each star
       btn.classList.remove('animating');
+      btn.style.animationDelay = '';
       void btn.offsetWidth;
+      btn.style.animationDelay = `${delay}ms`;
       btn.classList.add('animating');
-      btn.addEventListener('animationend', () => btn.classList.remove('animating'), {once:true});
+      btn.addEventListener('animationend', () => {
+        btn.classList.remove('animating');
+        btn.style.animationDelay = '';
+      }, {once:true});
     }
   });
 }
@@ -2976,7 +2981,7 @@ function initSyncUI() {
   const _orig = saveData;
   saveData = function(key, val) {
     _orig(key, val);
-    if (key === 'rb_recipes' || key === 'rb_grocery') {
+    if (key === 'rb_recipes' || key === 'rb_grocery' || key === 'rb_planner') {
       syncToServer(true);
     }
   };
