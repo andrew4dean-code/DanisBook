@@ -657,6 +657,22 @@ body{
   font-family:var(--font-display);font-size:19px;color:var(--text);
   margin-bottom:10px;
 }
+.account-switcher{
+  display:flex;gap:8px;
+}
+.account-btn{
+  flex:1;padding:10px 0;border-radius:var(--radius-lg);border:2px solid var(--border);
+  background:var(--surface);color:var(--text-muted);font-size:14px;font-weight:600;
+  cursor:pointer;transition:all 0.18s;
+}
+.account-btn:hover{background:var(--accent-muted);border-color:var(--accent);color:var(--text)}
+.account-btn.active{
+  background:var(--accent);border-color:var(--accent);
+  color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.12);
+}
+.account-switcher-hint{
+  font-size:12px;color:var(--text-faint);margin-top:7px;min-height:16px;transition:opacity 0.2s;
+}
 .settings-about{
   background:var(--surface);border:1px solid var(--border-light);
   border-radius:var(--radius-lg);padding:16px;
@@ -1118,6 +1134,15 @@ body{
       </div>
       <h1 class="settings-title">Dani's Book</h1>
       <span class="settings-version">Version <span class="version-num">1.8</span></span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Account</div>
+      <div class="account-switcher">
+        <button class="account-btn" data-account="DANI" id="accountBtnDani">🌸 Dani</button>
+        <button class="account-btn" data-account="ANDREW" id="accountBtnAndrew">🔧 Test</button>
+      </div>
+      <div class="account-switcher-hint" id="accountSwitcherHint"></div>
     </div>
 
     <div class="settings-section">
@@ -3107,10 +3132,73 @@ function setSyncStatus(msg, ok) {
   el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--error)' : 'var(--text-muted)';
 }
 
+function updateAccountSwitcherUI() {
+  const current = getSyncCode();
+  document.querySelectorAll('.account-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.account === current);
+  });
+  const hint = document.getElementById('accountSwitcherHint');
+  if (hint) hint.textContent = current === 'DANI' ? 'Viewing Dani\'s recipes' : `Viewing test account (${current})`;
+}
+
+async function switchAccount(newCode) {
+  const current = getSyncCode();
+  if (newCode === current) return;
+  const hint = document.getElementById('accountSwitcherHint');
+  if (hint) hint.textContent = 'Saving current data…';
+
+  // 1. Push current local data to the current account's server slot
+  try { await syncToServer(true); } catch(e) {}
+
+  // 2. Switch the code
+  if (newCode === 'DANI') {
+    localStorage.removeItem('rb_sync_override');
+  } else {
+    localStorage.setItem('rb_sync_override', newCode);
+  }
+
+  if (hint) hint.textContent = 'Loading account…';
+  updateAccountSwitcherUI();
+  const display = document.getElementById('syncCodeDisplay');
+  if (display) display.value = newCode;
+
+  // 3. Load the new account's data from server
+  try {
+    const r = await fetch(`${SYNC_ENDPOINT}/${newCode}`);
+    const { data } = await r.json();
+    if (data && Array.isArray(data.recipes)) {
+      recipes = data.recipes;
+      grocery = data.grocery || [];
+      planner = data.planner || {};
+    } else {
+      // Empty account — start fresh
+      recipes = [];
+      grocery = [];
+      planner = {};
+    }
+    saveData('rb_recipes', recipes);
+    saveData('rb_grocery', grocery);
+    saveData('rb_planner', planner);
+    renderRecipes();
+    renderGrocery();
+    setSyncStatus('Synced ✓', true);
+    if (hint) hint.textContent = newCode === 'DANI' ? 'Viewing Dani\'s recipes' : `Viewing test account (${newCode})`;
+    toast(`Switched to ${newCode === 'DANI' ? "Dani's account" : 'Test account'}`);
+  } catch(e) {
+    setSyncStatus('Saved locally', null);
+    if (hint) hint.textContent = 'Could not load — check connection';
+  }
+}
+
 function initSyncUI() {
   const code = getSyncCode();
   const display = document.getElementById('syncCodeDisplay');
   if (display) display.value = code;
+
+  updateAccountSwitcherUI();
+  document.querySelectorAll('.account-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchAccount(btn.dataset.account));
+  });
 
   document.getElementById('copySyncBtn')?.addEventListener('click', () => {
     navigator.clipboard.writeText(code).then(() => toast('Sync code copied!')).catch(() => {
