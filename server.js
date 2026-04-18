@@ -452,8 +452,12 @@ app.post('/api/instagram-video', async (req, res) => {
         '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         '--merge-output-format', 'mp4',
         url
-      ], { timeout: 60000 }, (err) => {
-        if (err) return reject(new Error('Could not download this video. The post may be private or unavailable.'));
+      ], { timeout: 60000 }, (err, stdout, stderr) => {
+        if (err) {
+          console.error('[yt-dlp error]', err.message);
+          if (stderr) console.error('[yt-dlp stderr]', stderr.slice(0, 500));
+          return reject(new Error('Could not download this video. The post may be private or unavailable.'));
+        }
         resolve();
       });
     });

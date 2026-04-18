@@ -12,4 +12,5 @@ RUN npm ci --omit=dev
 COPY . .
 
 EXPOSE 8080
-CMD ["npm", "start"]
+# Always update yt-dlp before starting so Instagram extraction stays current
+CMD ["sh", "-c", "yt-dlp -U 2>/dev/null; npm start"]
