@@ -1145,20 +1145,6 @@ body{
       <div class="account-switcher-hint" id="accountSwitcherHint"></div>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-title">Cloud Backup</div>
-      <div class="api-key-section">
-        <div class="api-key-header">
-          <span class="api-key-title">Your Sync Code</span>
-          <span class="api-key-status" id="syncStatus">Connecting…</span>
-        </div>
-        <div class="api-key-input-wrap">
-          <input type="text" class="form-input" id="syncCodeDisplay" readonly placeholder="Generating…" style="font-family:monospace;letter-spacing:0.08em">
-          <button class="btn btn-sm btn-secondary" id="copySyncBtn">Copy</button>
-        </div>
-        <div class="api-key-help">Your recipes are automatically backed up and restored across devices.</div>
-      </div>
-    </div>
 
     <div class="settings-section">
       <div class="settings-section-title">What's New</div>
@@ -3127,10 +3113,7 @@ async function syncFromServer() {
 }
 
 function setSyncStatus(msg, ok) {
-  const el = document.getElementById('syncStatus');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = ok === true ? 'var(--success)' : ok === false ? 'var(--error)' : 'var(--text-muted)';
+  // Cloud Backup UI removed — no-op kept so call sites don't error
 }
 
 function updateAccountSwitcherUI() {
@@ -3201,9 +3184,6 @@ async function switchAccount(newCode) {
     renderRecipes();
     renderGrocery();
     updateAccountSwitcherUI();
-    const display = document.getElementById('syncCodeDisplay');
-    if (display) display.value = newCode;
-
     const label = newCode === 'DANI' ? "Dani's account" : 'Test account';
     if (hint) hint.textContent = newCode === 'DANI' ? "Viewing Dani's recipes" : `Viewing test account (${newCode})`;
     setSyncStatus('Synced ✓', true);
@@ -3215,24 +3195,10 @@ async function switchAccount(newCode) {
 }
 
 function initSyncUI() {
-  const code = getSyncCode();
-  const display = document.getElementById('syncCodeDisplay');
-  if (display) display.value = code;
-
   updateAccountSwitcherUI();
   document.querySelectorAll('.account-btn').forEach(btn => {
     btn.addEventListener('click', () => switchAccount(btn.dataset.account));
   });
-
-  document.getElementById('copySyncBtn')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(code).then(() => toast('Sync code copied!')).catch(() => {
-      // Fallback for older browsers
-      display.select();
-      document.execCommand('copy');
-      toast('Sync code copied!');
-    });
-  });
-
 }
 
 // Patch saveData so writes to recipes/grocery also push to server
