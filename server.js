@@ -75,13 +75,168 @@ async function initDB() {
     )
   `);
   console.log('Database ready.');
+  await seedTestAccount();
 }
 initDB().catch(err => console.error('DB init error:', err.message));
+
+// ── Seed test account ─────────────────────────────────────────────────────────
+// Populates the ANDREW sync slot with generic recipes on first run.
+// Safe to redeploy — uses INSERT ... ON CONFLICT DO NOTHING so it never
+// overwrites data Andrew has already added/modified.
+async function seedTestAccount() {
+  if (!pool) return;
+  const TEST_CODE = 'ANDREW';
+  const existing = await pool.query('SELECT code FROM user_data WHERE code = $1', [TEST_CODE]);
+  if (existing.rows.length > 0) return; // already seeded — never touch it again
+
+  const testData = {
+    updatedAt: Date.now(),
+    grocery: [],
+    planner: {},
+    recipes: [
+      {
+        id: 'test-001',
+        name: 'Classic Spaghetti Bolognese',
+        category: 'Dinner',
+        time: '45 min',
+        servings: '4',
+        ingredients: [
+          '1 lb ground beef', '1 onion, diced', '3 cloves garlic, minced',
+          '1 can crushed tomatoes (28 oz)', '2 tbsp tomato paste',
+          '1 tsp dried oregano', '1 tsp dried basil',
+          'Salt and pepper to taste', '12 oz spaghetti', 'Parmesan for serving'
+        ],
+        instructions: [
+          'Brown the ground beef over medium-high heat. Drain excess fat.',
+          'Add onion and garlic, cook until softened, about 5 minutes.',
+          'Stir in tomato paste and cook 1 minute.',
+          'Add crushed tomatoes, herbs, salt and pepper. Simmer 20 minutes.',
+          'Cook spaghetti per package directions.',
+          'Serve sauce over pasta, topped with Parmesan.'
+        ],
+        notes: 'Sauce freezes well for up to 3 months.',
+        photo: null, sourceUrl: ''
+      },
+      {
+        id: 'test-002',
+        name: 'Fluffy Blueberry Pancakes',
+        category: 'Breakfast',
+        time: '20 min',
+        servings: '2',
+        ingredients: [
+          '1 cup all-purpose flour', '2 tsp baking powder', '1 tbsp sugar',
+          '1/4 tsp salt', '1 cup milk', '1 egg',
+          '2 tbsp melted butter', '1/2 cup fresh blueberries'
+        ],
+        instructions: [
+          'Whisk together flour, baking powder, sugar, and salt.',
+          'In a separate bowl, mix milk, egg, and melted butter.',
+          'Combine wet and dry — lumps are fine. Fold in blueberries.',
+          'Cook on a greased griddle over medium heat until bubbles form, then flip.',
+          'Serve with maple syrup.'
+        ],
+        notes: 'Do not overmix or the pancakes will be tough.',
+        photo: null, sourceUrl: ''
+      },
+      {
+        id: 'test-003',
+        name: 'Avocado Chicken Salad Wrap',
+        category: 'Lunch',
+        time: '15 min',
+        servings: '2',
+        ingredients: [
+          '2 cups cooked chicken, shredded', '1 ripe avocado, mashed',
+          '2 tbsp Greek yogurt', '1 tbsp lime juice',
+          '1/4 cup red onion, diced', 'Salt and pepper to taste',
+          '2 large flour tortillas', 'Handful of spinach leaves'
+        ],
+        instructions: [
+          'Mix mashed avocado, Greek yogurt, and lime juice.',
+          'Fold in chicken and red onion. Season to taste.',
+          'Lay spinach on each tortilla, top with chicken mixture.',
+          'Roll tightly and slice in half.'
+        ],
+        notes: 'Swap Greek yogurt for mayo if preferred.',
+        photo: null, sourceUrl: ''
+      },
+      {
+        id: 'test-004',
+        name: 'Chocolate Chip Cookies',
+        category: 'Dessert',
+        time: '30 min',
+        servings: '24 cookies',
+        ingredients: [
+          '2 1/4 cups all-purpose flour', '1 tsp baking soda', '1 tsp salt',
+          '1 cup butter, softened', '3/4 cup granulated sugar',
+          '3/4 cup packed brown sugar', '2 large eggs',
+          '2 tsp vanilla extract', '2 cups chocolate chips'
+        ],
+        instructions: [
+          'Preheat oven to 375°F.',
+          'Whisk flour, baking soda, and salt. Set aside.',
+          'Beat butter and both sugars until creamy. Beat in eggs and vanilla.',
+          'Blend in flour mixture. Stir in chocolate chips.',
+          'Drop rounded tablespoons onto ungreased baking sheets.',
+          'Bake 9–11 minutes until golden. Cool 2 minutes on pan.'
+        ],
+        notes: 'More brown sugar than white = chewier cookies.',
+        photo: null, sourceUrl: ''
+      },
+      {
+        id: 'test-005',
+        name: 'Garlic Hummus & Veggie Plate',
+        category: 'Snack',
+        time: '10 min',
+        servings: '4',
+        ingredients: [
+          '1 can chickpeas (15 oz), drained', '3 tbsp tahini',
+          '3 tbsp lemon juice', '2 cloves garlic', '2 tbsp olive oil',
+          'Salt to taste', 'Carrots, cucumber, bell pepper for serving'
+        ],
+        instructions: [
+          'Blend chickpeas, tahini, lemon juice, garlic, and olive oil until smooth.',
+          'Season with salt. Add water to adjust consistency.',
+          'Drizzle with olive oil and paprika. Serve with veggies for dipping.'
+        ],
+        notes: 'Keeps in the fridge up to 5 days.',
+        photo: null, sourceUrl: ''
+      },
+      {
+        id: 'test-006',
+        name: 'Sheet Pan Lemon Herb Salmon',
+        category: 'Dinner',
+        time: '25 min',
+        servings: '4',
+        ingredients: [
+          '4 salmon fillets', '2 tbsp olive oil', '2 cloves garlic, minced',
+          'Zest and juice of 1 lemon', '1 tsp dried thyme',
+          '1 tsp dried parsley', 'Salt and pepper to taste',
+          '1 lb asparagus, trimmed'
+        ],
+        instructions: [
+          'Preheat oven to 400°F. Line a baking sheet with foil.',
+          'Mix olive oil, garlic, lemon zest, juice, thyme, and parsley.',
+          'Place salmon and asparagus on the sheet pan. Brush salmon with herb mixture.',
+          'Season everything with salt and pepper.',
+          'Roast 12–15 minutes until salmon flakes easily.'
+        ],
+        notes: 'One pan, minimal cleanup. Works great with green beans too.',
+        photo: null, sourceUrl: ''
+      }
+    ]
+  };
+
+  await pool.query(
+    'INSERT INTO user_data (code, data, updated_at) VALUES ($1, $2, NOW())',
+    [TEST_CODE, testData]
+  );
+  console.log('Seeded ANDREW test account with', testData.recipes.length, 'recipes.');
+}
 
 // ── API: Version ─────────────────────────────────────────────────────────────
 // Bump this string on every deploy — clients compare against APP_VERSION in JS
 app.get('/api/version', (req, res) => {
-  res.json({ version: '1.7' });
+  res.json({ version: '1.8' });
 });
 
 // ── API: Sync — fetch user data ───────────────────────────────────────────────
