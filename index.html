@@ -2984,7 +2984,31 @@ async function checkForUpdate() {
 // ========== CLOUD SYNC ==========
 const SYNC_ENDPOINT = '/api/sync';
 
+// Dev / test account override. Visit /?sync=ANDREW (or any code) once to
+// persist a separate sync code on this device — useful for testing without
+// touching Dani's data. Visit /?sync=reset or /?sync=dani to clear it.
+(function applySyncOverrideFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('sync')) return;
+    const raw = (params.get('sync') || '').trim().toUpperCase();
+    if (!raw || raw === 'RESET' || raw === 'DANI') {
+      localStorage.removeItem('rb_sync_override');
+    } else {
+      localStorage.setItem('rb_sync_override', raw);
+    }
+    params.delete('sync');
+    const q = params.toString();
+    const url = window.location.pathname + (q ? '?' + q : '') + window.location.hash;
+    window.history.replaceState(null, '', url);
+  } catch (e) {}
+})();
+
 function getSyncCode() {
+  try {
+    const override = localStorage.getItem('rb_sync_override');
+    if (override) return override;
+  } catch(e) {}
   return 'DANI';
 }
 
@@ -2995,6 +3019,8 @@ async function migrateLegacySyncCode() {
   const LEGACY_KEY = 'rb_sync_code';
   const MIGRATED_FLAG = 'rb_sync_migrated_to_dani';
   if (localStorage.getItem(MIGRATED_FLAG) === '1') return;
+  // If this device is using a dev/test sync override, skip the DANI migration
+  if (localStorage.getItem('rb_sync_override')) return;
   let oldCode = null;
   try { oldCode = JSON.parse(localStorage.getItem(LEGACY_KEY)); } catch(e){}
   if (!oldCode || typeof oldCode !== 'string' || oldCode.toUpperCase() === 'DANI') {
