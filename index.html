@@ -1156,11 +1156,7 @@ body{
           <input type="text" class="form-input" id="syncCodeDisplay" readonly placeholder="Generating…" style="font-family:monospace;letter-spacing:0.08em">
           <button class="btn btn-sm btn-secondary" id="copySyncBtn">Copy</button>
         </div>
-        <div class="api-key-help">Write this code down or screenshot it. If you ever clear your browser or switch devices, enter it below to restore all your recipes instantly.</div>
-        <div style="margin-top:10px">
-          <input type="text" class="form-input" id="restoreCodeInput" placeholder="Enter a sync code to restore…" style="font-family:monospace;letter-spacing:0.08em;text-transform:uppercase">
-          <button class="btn btn-sm btn-primary btn-block" style="margin-top:8px" id="restoreBtn">Restore My Recipes</button>
-        </div>
+        <div class="api-key-help">Your recipes are automatically backed up and restored across devices.</div>
       </div>
     </div>
 
@@ -3237,34 +3233,6 @@ function initSyncUI() {
     });
   });
 
-  document.getElementById('restoreBtn')?.addEventListener('click', async () => {
-    const input = document.getElementById('restoreCodeInput');
-    const entered = (input?.value || '').trim().toUpperCase();
-    if (!entered) { toast('Please enter a sync code first.'); return; }
-    try {
-      setSyncStatus('Restoring…', null);
-      const r = await fetch(`${SYNC_ENDPOINT}/${entered}`);
-      const { data } = await r.json();
-      if (data && Array.isArray(data.recipes) && data.recipes.length > 0) {
-        recipes = data.recipes;
-        grocery = data.grocery || [];
-        planner = data.planner || {};
-        saveData('rb_recipes', recipes);
-        saveData('rb_grocery', grocery);
-        saveData('rb_planner', planner);
-        renderRecipes();
-        renderGrocery();
-        setSyncStatus('Synced ✓', true);
-        toast('Recipes restored! ✓');
-      } else {
-        setSyncStatus('Saved locally', null);
-        toast('No recipes found for that code. Double-check it and try again.');
-      }
-    } catch(e) {
-      setSyncStatus('Saved locally', null);
-      toast('Restore failed — check your connection and try again.');
-    }
-  });
 }
 
 // Patch saveData so writes to recipes/grocery also push to server
