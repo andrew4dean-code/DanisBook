@@ -57,6 +57,8 @@ a{color:inherit;text-decoration:none}
   --transition:180ms ease;
   --tab-bar-h:72px;
   --header-h:56px;
+  /* Extra buffer above the iOS home indicator / Siri pill area */
+  --safe-bottom:calc(env(safe-area-inset-bottom, 0px) + 14px);
 }
 
 [data-theme="dark"]{
@@ -116,8 +118,8 @@ body{
 /* ========== TAB BAR ========== */
 .tab-bar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;
-  height:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
-  padding-bottom:env(safe-area-inset-bottom, 0px);
+  height:calc(var(--tab-bar-h) + var(--safe-bottom));
+  padding-bottom:var(--safe-bottom);
   background:rgba(255,255,255,0.82);
   border-top:1px solid rgba(255,255,255,0.5);
   box-shadow:0 -4px 24px rgba(61,50,41,0.08);
@@ -147,7 +149,7 @@ body{
 }
 
 /* ========== TAB PANELS ========== */
-.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease;height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - env(safe-area-inset-bottom, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box}
+.tab-panel{display:none;padding:16px;padding-bottom:24px;animation:fadeIn 0.25s ease;height:calc(100dvh - var(--header-h) - var(--tab-bar-h) - var(--safe-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box}
 .tab-panel.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -223,7 +225,7 @@ body{
 
 /* ========== FAB ========== */
 .fab{
-  position:fixed;bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  position:fixed;bottom:calc(var(--tab-bar-h) + var(--safe-bottom) + 16px);
   right:16px;z-index:50;
   width:52px;height:52px;border-radius:var(--radius-full);
   background:var(--accent);color:#fff;
@@ -560,7 +562,7 @@ body{
 
 /* ========== TOAST ========== */
 .toast{
-  position:fixed;bottom:calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  position:fixed;bottom:calc(var(--tab-bar-h) + var(--safe-bottom) + 16px);
   left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--text);color:var(--bg);
   padding:10px 20px 13px;border-radius:var(--radius-full);
@@ -834,8 +836,11 @@ body{
 .planner-meal-entry{
   display:flex;align-items:center;gap:10px;
   background:var(--bg);border-radius:10px;padding:8px 10px;
-  position:relative;
+  position:relative;cursor:pointer;
+  transition:background 0.15s,transform 0.08s;
 }
+.planner-meal-entry:hover{background:var(--accent-muted)}
+.planner-meal-entry:active{transform:scale(0.985)}
 .planner-meal-thumb,.planner-meal-thumb-placeholder{
   width:44px;height:44px;border-radius:8px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:20px;
@@ -2734,7 +2739,7 @@ function renderPlanner() {
       const starsHtml = [1,2,3,4,5].map(s =>
         `<button class="star-btn ${(entry.rating||0) >= s ? 'filled' : ''}" data-key="${key}" data-id="${entry.id}" data-star="${s}">★</button>`
       ).join('');
-      return `<div class="planner-meal-entry">
+      return `<div class="planner-meal-entry" data-recipe-id="${entry.recipeId}" role="button" tabindex="0">
         ${thumbHtml}
         <div class="planner-meal-body">
           <div class="planner-meal-type">${entry.mealType}</div>
@@ -2796,6 +2801,15 @@ function renderPlanner() {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       setMealRating(btn.dataset.key, btn.dataset.id, parseInt(btn.dataset.star));
+    });
+  });
+  container.querySelectorAll('.planner-meal-entry[data-recipe-id]').forEach(entry => {
+    entry.addEventListener('click', e => {
+      // Ignore taps on stars or remove — those have their own handlers
+      if (e.target.closest('.star-btn, .planner-meal-remove')) return;
+      const rid = entry.dataset.recipeId;
+      if (recipes.find(r => r.id === rid)) openDetail(rid);
+      else toast('Recipe no longer available');
     });
   });
 
