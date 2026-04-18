@@ -3084,7 +3084,12 @@ async function migrateLegacySyncCode() {
   }
 }
 
+// Blocks all syncToServer calls during account switches so we never
+// accidentally write one account's data to another account's slot.
+let syncPaused = false;
+
 async function syncToServer(silent) {
+  if (syncPaused) return;
   const code = getSyncCode();
   const payload = { recipes, grocery, planner, updatedAt: Date.now() };
   try {
@@ -3145,48 +3150,71 @@ async function switchAccount(newCode) {
   const current = getSyncCode();
   if (newCode === current) return;
   const hint = document.getElementById('accountSwitcherHint');
-  if (hint) hint.textContent = 'Saving current data…';
 
-  // 1. Push current local data to the current account's server slot
-  try { await syncToServer(true); } catch(e) {}
-
-  // 2. Switch the code
-  if (newCode === 'DANI') {
-    localStorage.removeItem('rb_sync_override');
-  } else {
-    localStorage.setItem('rb_sync_override', newCode);
-  }
-
-  if (hint) hint.textContent = 'Loading account…';
-  updateAccountSwitcherUI();
-  const display = document.getElementById('syncCodeDisplay');
-  if (display) display.value = newCode;
-
-  // 3. Load the new account's data from server
+  // Freeze all syncs for the entire duration — nothing writes to the server
+  // until we have confirmed, correct data in memory.
+  syncPaused = true;
   try {
-    const r = await fetch(`${SYNC_ENDPOINT}/${newCode}`);
-    const { data } = await r.json();
-    if (data && Array.isArray(data.recipes)) {
-      recipes = data.recipes;
-      grocery = data.grocery || [];
-      planner = data.planner || {};
-    } else {
-      // Empty account — start fresh
-      recipes = [];
-      grocery = [];
-      planner = {};
+    if (hint) hint.textContent = 'Saving current data…';
+
+    // 1. Save current account's data to its own server slot (still using old code)
+    try {
+      const oldCode = getSyncCode();
+      const payload = { recipes, grocery, planner, updatedAt: Date.now() };
+      await fetch(`${SYNC_ENDPOINT}/${oldCode}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ data: payload })
+      });
+    } catch(e) { /* network issue — local data is fine, keep going */ }
+
+    // 2. Fetch the new account's data BEFORE switching anything
+    if (hint) hint.textContent = 'Loading account…';
+    let newRecipes = null, newGrocery = [], newPlanner = {};
+    try {
+      const r = await fetch(`${SYNC_ENDPOINT}/${newCode}`);
+      const { data } = await r.json();
+      if (data && Array.isArray(data.recipes)) {
+        newRecipes = data.recipes;
+        newGrocery = data.grocery || [];
+        newPlanner = data.planner || {};
+      }
+    } catch(e) {
+      // Can't reach server — abort the switch to be safe
+      syncPaused = false;
+      if (hint) hint.textContent = 'Could not reach server — switch cancelled';
+      toast('Could not load account — try again');
+      return;
     }
-    saveData('rb_recipes', recipes);
-    saveData('rb_grocery', grocery);
-    saveData('rb_planner', planner);
+
+    // 3. Only NOW flip the code — data is confirmed in hand
+    if (newCode === 'DANI') {
+      localStorage.removeItem('rb_sync_override');
+    } else {
+      localStorage.setItem('rb_sync_override', newCode);
+    }
+
+    // 4. Update local state (syncPaused still true so saveData won't trigger a write)
+    recipes = newRecipes || [];
+    grocery = newGrocery;
+    planner = newPlanner;
+    localStorage.setItem('rb_recipes', JSON.stringify(recipes));
+    localStorage.setItem('rb_grocery', JSON.stringify(grocery));
+    localStorage.setItem('rb_planner', JSON.stringify(planner));
+
     renderRecipes();
     renderGrocery();
+    updateAccountSwitcherUI();
+    const display = document.getElementById('syncCodeDisplay');
+    if (display) display.value = newCode;
+
+    const label = newCode === 'DANI' ? "Dani's account" : 'Test account';
+    if (hint) hint.textContent = newCode === 'DANI' ? "Viewing Dani's recipes" : `Viewing test account (${newCode})`;
     setSyncStatus('Synced ✓', true);
-    if (hint) hint.textContent = newCode === 'DANI' ? 'Viewing Dani\'s recipes' : `Viewing test account (${newCode})`;
-    toast(`Switched to ${newCode === 'DANI' ? "Dani's account" : 'Test account'}`);
-  } catch(e) {
-    setSyncStatus('Saved locally', null);
-    if (hint) hint.textContent = 'Could not load — check connection';
+    toast(`Switched to ${label}`);
+  } finally {
+    // Always unpause — even if something above threw
+    syncPaused = false;
   }
 }
 
