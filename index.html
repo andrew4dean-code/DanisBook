@@ -1628,8 +1628,35 @@ window.deleteRecipe=function(id){
   });
 };
 
-// ========== ADD/EDIT FORM ==========
-$('#addRecipeBtn').addEventListener('click',()=>{
+// ========== ADD SHEET ==========
+function openAddSheet(){
+  const overlay=$('#addSheetOverlay');
+  overlay.classList.add('open');
+  lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+  overlay.addEventListener('click',function closeOnBg(e){
+    if(e.target===overlay){closeAddSheet();overlay.removeEventListener('click',closeOnBg);}
+  });
+}
+function closeAddSheet(){
+  $('#addSheetOverlay').classList.remove('open');
+}
+
+$('#addCenterBtn').addEventListener('click',openAddSheet);
+$('#sheetCancel').addEventListener('click',closeAddSheet);
+
+function openScanOverlay(mode){
+  closeAddSheet();
+  // Trigger the existing mode button so all its side-effects run
+  $$('.scan-mode-btn').forEach(b=>{if(b.dataset.mode===mode)b.click();});
+  $('#panel-scan').classList.add('open');
+  lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
+}
+function closeScanOverlay(){
+  $('#panel-scan').classList.remove('open');
+}
+
+$('#sheetAddManual').addEventListener('click',()=>{
+  closeAddSheet();
   editingId=null;
   pendingScanUrl=null;
   $('#formTitle').textContent='Add Recipe';
@@ -1638,6 +1665,11 @@ $('#addRecipeBtn').addEventListener('click',()=>{
   clearRecipePhoto();
   $('#formModal').classList.add('open');
 });
+$('#sheetScanPhoto').addEventListener('click',()=>openScanOverlay('identify'));
+$('#sheetInstagram').addEventListener('click',()=>openScanOverlay('instagram'));
+$('#scanOverlayClose').addEventListener('click',closeScanOverlay);
+
+// ========== ADD/EDIT FORM ==========
 $('#formClose').addEventListener('click',()=>$('#formModal').classList.remove('open'));
 $('#formModal').addEventListener('click',e=>{if(e.target===$('#formModal'))$('#formModal').classList.remove('open')});
 
