@@ -3226,5 +3226,49 @@ initSyncUI();
 migrateLegacySyncCode().then(() => syncFromServer());
 checkForUpdate();
 </script>
+
+<!-- ADD RECIPE SHEET -->
+<div class="modal-overlay" id="addSheetOverlay">
+  <div class="modal-sheet" id="addSheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Add a Recipe</span>
+    </div>
+    <div class="modal-body" style="padding-bottom:24px">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px">How would you like to add it?</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <button class="add-sheet-option" id="sheetAddManual">
+          <div class="add-sheet-icon" style="background:var(--accent)">
+            <i data-lucide="pencil-line"></i>
+          </div>
+          <div class="add-sheet-text">
+            <div class="add-sheet-title">Add Manually</div>
+            <div class="add-sheet-desc">Type it in yourself</div>
+          </div>
+        </button>
+        <button class="add-sheet-option" id="sheetScanPhoto">
+          <div class="add-sheet-icon" style="background:var(--text)">
+            <i data-lucide="camera"></i>
+          </div>
+          <div class="add-sheet-text">
+            <div class="add-sheet-title">Scan or Photo</div>
+            <div class="add-sheet-desc">Snap a dish or scan a recipe card</div>
+          </div>
+        </button>
+        <button class="add-sheet-option" id="sheetInstagram">
+          <div class="add-sheet-icon" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)">
+            <i data-lucide="instagram"></i>
+          </div>
+          <div class="add-sheet-text">
+            <div class="add-sheet-title">From Instagram</div>
+            <div class="add-sheet-desc">Paste a post link or Reel</div>
+          </div>
+        </button>
+      </div>
+      <button class="add-sheet-cancel" id="sheetCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
