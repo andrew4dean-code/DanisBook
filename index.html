@@ -977,20 +977,22 @@ body{
     <i data-lucide="book-open"></i>
     <span>Recipes</span>
   </button>
-  <button class="tab-btn" data-tab="scan" data-tab-index="1">
-    <i data-lucide="camera"></i>
-    <span>Scan</span>
-  </button>
-  <button class="tab-btn" data-tab="grocery" data-tab-index="2">
+  <button class="tab-btn" data-tab="grocery" data-tab-index="1">
     <i data-lucide="shopping-bag"></i>
     <span>Grocery</span>
     <span class="tab-badge" id="groceryBadge" style="display:none">0</span>
   </button>
-  <button class="tab-btn" data-tab="planner" data-tab-index="3">
+  <button class="tab-center-btn" id="addCenterBtn" aria-label="Add recipe">
+    <div class="tab-center-circle">
+      <i data-lucide="plus"></i>
+    </div>
+    <span>Add</span>
+  </button>
+  <button class="tab-btn" data-tab="planner" data-tab-index="2">
     <i data-lucide="calendar-days"></i>
     <span>Planner</span>
   </button>
-  <button class="tab-btn" data-tab="settings" data-tab-index="4">
+  <button class="tab-btn" data-tab="settings" data-tab-index="3">
     <i data-lucide="settings"></i>
     <span>Settings</span>
   </button>
@@ -1022,9 +1024,6 @@ body{
     <div class="empty-state-title">No recipes found</div>
     <div class="empty-state-text">Try a different search or add your first recipe by tapping the + button.</div>
   </div>
-  <button class="fab" id="addRecipeBtn" aria-label="Add recipe">
-    <i data-lucide="plus"></i>
-  </button>
 </div>
 
 <!-- SCAN TAB -->
