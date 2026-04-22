@@ -1133,7 +1133,7 @@ body{
         </svg>
       </div>
       <h1 class="settings-title">Dani's Book</h1>
-      <span class="settings-version">Version <span class="version-num">1.8</span></span>
+      <span class="settings-version">Version <span class="version-num">1.9</span></span>
     </div>
 
     <div class="settings-section">
@@ -1149,7 +1149,9 @@ body{
     <div class="settings-section">
       <div class="settings-section-title">What's New</div>
       <div class="settings-about">
-        <p style="font-weight:600;color:var(--text)">Version 1.8 — April 2026</p>
+        <p style="font-weight:600;color:var(--text)">Version 1.9 — April 2026</p>
+        <p>• Add button now lives in the center of the tab bar — tap it to add a recipe manually, scan a photo, or pull from Instagram</p>
+        <p style="margin-top:14px;font-weight:600;color:var(--text-muted)">Version 1.8 — April 2026</p>
         <p>• New Planner tab — assign recipes to each day of the week, rate meals with animated stars, and look back at past weeks</p>
         <p>• Playful picnic-basket unpacking animation when you open the Planner</p>
         <p>• Each day's meals drop in one by one for a little extra delight</p>
@@ -2973,7 +2975,7 @@ document.getElementById('plannerNext')?.addEventListener('click', () => {
 });
 
 // ========== VERSION CHECK ==========
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 async function checkForUpdate() {
   try {
     const r = await fetch('/api/version');

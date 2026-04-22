@@ -236,7 +236,7 @@ async function seedTestAccount() {
 // ── API: Version ─────────────────────────────────────────────────────────────
 // Bump this string on every deploy — clients compare against APP_VERSION in JS
 app.get('/api/version', (req, res) => {
-  res.json({ version: '1.8' });
+  res.json({ version: '1.9' });
 });
 
 // ── API: Sync — fetch user data ───────────────────────────────────────────────
