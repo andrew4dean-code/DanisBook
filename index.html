@@ -302,6 +302,26 @@ body{
 }
 .add-sheet-cancel:active{background:var(--border-light)}
 
+/* ========== SCAN OVERLAY ========== */
+.scan-overlay{
+  position:fixed;inset:0;z-index:150;
+  background:var(--bg);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:16px;padding-top:calc(var(--header-h) + 16px);
+  padding-bottom:calc(var(--tab-bar-h) + var(--safe-bottom) + 16px);
+  display:none;
+  animation:fadeIn 0.22s ease;
+}
+.scan-overlay.open{display:block}
+.scan-overlay-close{
+  display:flex;align-items:center;gap:6px;
+  font-size:15px;font-weight:500;color:var(--text-muted);
+  margin-bottom:16px;
+  -webkit-tap-highlight-color:transparent;
+}
+.scan-overlay-close svg{width:20px;height:20px}
+.scan-overlay-close:active{color:var(--accent)}
+
 /* ========== FORMS ========== */
 .form-group{margin-bottom:16px}
 .form-label{display:block;font-size:13px;font-weight:500;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.02em}
@@ -1058,7 +1078,10 @@ body{
 </div>
 
 <!-- SCAN TAB -->
-<div class="tab-panel" id="panel-scan">
+<div class="scan-overlay" id="panel-scan">
+  <button class="scan-overlay-close" id="scanOverlayClose" aria-label="Close">
+    <i data-lucide="arrow-left"></i>
+  </button>
   <div class="scan-section" id="scanUploadSection">
     <!-- Mode Toggle -->
     <div class="scan-mode-toggle">
