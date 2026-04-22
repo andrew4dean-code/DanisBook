@@ -1379,7 +1379,6 @@ $$('.tab-btn').forEach(btn=>{
     if(currentTab==='planner'){plannerShouldUnpack=true;renderPlanner();}
     if(currentTab==='recipes'){
       renderRecipes();
-      const fab=$('.fab');fab.classList.remove('bounce-in');void fab.offsetWidth;fab.classList.add('bounce-in');
     }
   });
 });
@@ -3222,8 +3221,6 @@ function initSyncUI() {
 renderRecipes();
 renderGrocery();
 lucide.createIcons({attrs:{class:''},nameAttr:'data-lucide'});
-// FAB entrance on load
-setTimeout(()=>{const fab=$('.fab');if(fab){fab.classList.add('bounce-in')}},80);
 // Cloud sync + update check
 initSyncUI();
 migrateLegacySyncCode().then(() => syncFromServer());
