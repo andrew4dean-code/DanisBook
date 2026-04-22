@@ -276,6 +276,32 @@ body{
 .modal-close svg{width:20px;height:20px}
 .modal-body{padding:0 20px 32px}
 
+/* ========== ADD SHEET OPTIONS ========== */
+.add-sheet-option{
+  display:flex;align-items:center;gap:14px;
+  width:100%;padding:14px 16px;
+  background:var(--surface-alt);border:1.5px solid var(--border);
+  border-radius:var(--radius-md);
+  text-align:left;
+  transition:background var(--transition),border-color var(--transition);
+}
+.add-sheet-option:active{background:var(--border-light)}
+#sheetAddManual{background:var(--accent-light);border-color:var(--accent)}
+#sheetAddManual:active{background:var(--accent-muted)}
+.add-sheet-icon{
+  width:44px;height:44px;border-radius:var(--radius-sm);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+.add-sheet-icon svg{width:20px;height:20px}
+.add-sheet-title{font-size:15px;font-weight:600;color:var(--text)}
+.add-sheet-desc{font-size:12px;color:var(--text-muted);margin-top:1px}
+.add-sheet-cancel{
+  display:block;width:100%;margin-top:16px;padding:12px;
+  background:var(--surface-alt);border-radius:var(--radius-md);
+  font-size:14px;color:var(--text-muted);text-align:center;
+}
+.add-sheet-cancel:active{background:var(--border-light)}
+
 /* ========== FORMS ========== */
 .form-group{margin-bottom:16px}
 .form-label{display:block;font-size:13px;font-weight:500;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.02em}
