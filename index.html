@@ -223,18 +223,26 @@ body{
 }
 .recipe-card-time svg,.recipe-card-servings svg{width:13px;height:13px}
 
-/* ========== FAB ========== */
-.fab{
-  position:fixed;bottom:calc(var(--tab-bar-h) + var(--safe-bottom) + 16px);
-  right:16px;z-index:50;
+/* ========== CENTER TAB BUTTON ========== */
+.tab-center-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;
+  padding-bottom:6px;
+  font-size:11px;font-weight:600;color:var(--accent);letter-spacing:0.02em;
+  -webkit-tap-highlight-color:transparent;
+  position:relative;
+}
+.tab-center-circle{
   width:52px;height:52px;border-radius:var(--radius-full);
   background:var(--accent);color:#fff;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:var(--shadow-lg);
+  box-shadow:0 4px 14px rgba(196,112,90,0.45);
+  border:3px solid var(--bg);
+  margin-top:-18px;
   transition:transform var(--transition),background var(--transition);
 }
-.fab:active{transform:scale(0.92);background:var(--accent-active)}
-.fab svg{width:24px;height:24px}
+.tab-center-btn:active .tab-center-circle{transform:scale(0.92);background:var(--accent-active)}
+.tab-center-circle svg{width:24px;height:24px}
+[data-theme="dark"] .tab-center-circle{border-color:var(--bg);box-shadow:0 4px 14px rgba(212,136,110,0.4)}
 
 /* ========== MODAL ========== */
 .modal-overlay{
